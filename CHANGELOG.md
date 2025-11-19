@@ -28,5 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Estructuración del proyecto (19/11/2025).
 - Importación de assets (19/11/2025).
 - Creación de prefabs (19/11/2022).
+- Agregar piso a escena del proyecto (19/11/2022).
 - Agregar changelog al proyecto (19/11/2022).
 - Agregar plantilla de Pull Request (19/11/2022).
