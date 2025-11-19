@@ -13,3 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Estructuración del proyecto (19/11/2025).
 - Importación de assets (19/11/2025).
 - Creación de prefabs (19/11/2022).
+
+## [0.0.1] - UNRELEASED
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
