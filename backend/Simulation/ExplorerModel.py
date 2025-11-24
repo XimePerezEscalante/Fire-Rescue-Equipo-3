@@ -19,7 +19,7 @@ import numpy as np
 
 
 class ExplorerModel(Model):
-    def __init__(self, width=11, height=11, agents=5, pa=100):
+    def __init__(self, width=8, height=6, agents=5, pa=100):
         super().__init__()
 
         # Parámetros del sistema
@@ -29,9 +29,12 @@ class ExplorerModel(Model):
         
         mapData = readMap()
         self.walls = mapData['walls']
+        self.fires = mapData['fires'] # Lista de coordenadas de fuego
+        self.pois = mapData['pois']   # Lista de coordenadas de POIs
+        self.doors = mapData['doors'] # <--- AGREGAR ESTA LÍNEA
 
         # Crear matriz de recursos -> Sustituir valores de pois
-        # self.cells = np.zeros((width, height), dtype=int)
+        self.cells = np.zeros((width, height), dtype=int)
         # count = int(resources)
         # while count > 0:
         #     x = self.random.randrange(width)
@@ -40,11 +43,20 @@ class ExplorerModel(Model):
         #         self.cells[x][y] = 1
         #         count -= 1
 
+        self.center = (0, 0)  # Define dónde está la base (coordenada x, y)
+        self.cells = np.zeros((width, height), dtype=int) # Matriz para comida/fuego
+        # ----------------------------
+
         # Crear agentes exploradores
         i = 0
         while i < agents:
-            x = self.random.choice([0,8-1])
-            y = self.random.choice([0,6-1])
+            x = self.random.randrange(width) 
+            
+            if x > 0:
+                y = 0
+            else:
+                # CORRECCIÓN: Usar randrange(height)
+                y = self.random.randrange(height)
             if self.grid.is_cell_empty((x, y)):
                 agent = AgenteBaseModel(self, pa)
                 self.grid.place_agent(agent, (x, y))
@@ -60,12 +72,9 @@ class ExplorerModel(Model):
         )
 
     def step(self):
+        self.datacollector.collect(self)
         self.agents.shuffle_do("step")
         self.steps += 1
-        self.datacollector.collect(self)
 
     def is_all_clean(self):
-        if self.steps == 10:
-            return False
-        else:
-            return True
+        return self.steps >= 50
