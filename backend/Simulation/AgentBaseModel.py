@@ -2,7 +2,7 @@ from mesa import Agent
 import numpy as np
 
 class AgenteBaseModel(Agent):
-    def __init__(self, model, pa):
+    def __init__(self, model, pa, id):
         super().__init__(model)
         self.model = model
         #Atributos del agente
@@ -15,6 +15,7 @@ class AgenteBaseModel(Agent):
         self.fireExtinguish = 0
         self.dazedTimes = 0
         self.cellsVisited = 0
+        self.id = id;
 
     def check_door(self, next_pos):
         curr_x, curr_y = self.pos
