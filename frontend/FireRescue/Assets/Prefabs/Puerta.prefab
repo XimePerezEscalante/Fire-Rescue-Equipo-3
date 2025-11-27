@@ -14,7 +14,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9391e733937984a1db5560006f8f28d1, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.43
+      value: 1.6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9391e733937984a1db5560006f8f28d1, type: 3}
       propertyPath: m_LocalPosition.x
@@ -58,7 +58,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 9391e733937984a1db5560006f8f28d1, type: 3}
       propertyPath: m_Name
-      value: door_B
+      value: Puerta
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
