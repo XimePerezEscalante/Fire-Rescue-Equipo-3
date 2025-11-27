@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 def get_grid(model):
@@ -34,7 +35,11 @@ def get_grid(model):
     return grid
 
 def readMap():
-    with open("InitialState.txt", mode="r") as f:
+    current_dir = os.path.dirname(__file__)
+    file_path = os.path.join(current_dir, "..", "Data", "InitialState.txt")
+    file_path = os.path.abspath(file_path) 
+
+    with open(file_path, mode="r") as f:
         text = list(map(lambda x: x.strip(), f.readlines()))
         
         # Paredes: se leen igual

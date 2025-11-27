@@ -6,8 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 import json
 import sys
-sys.path.append('../Simulation')
-import Simulation
+from Simulation.Simulation import Simulation
 
 GRID_WIDTH = 8
 GRID_HEIGHT = 6
@@ -36,9 +35,8 @@ class Server(BaseHTTPRequestHandler):
 
     def do_POST(self):
         # 1. Correr la simulación
-        simulation = Simulation.Simulation(GRID_WIDTH, GRID_HEIGHT, AGENTS, MAX_ENERGY)
+        simulation = Simulation(GRID_WIDTH, GRID_HEIGHT, AGENTS, MAX_ENERGY)
         simulation.runSimulation()
-        simulation.show()
         
         # 2. Obtener el diccionario de posiciones { id: [[y,x], [y,x]...] }
         # Nota: Pandas no es estrictamente necesario aquí si ya tienes el diccionario en simulation.model.agents_positions
@@ -59,8 +57,10 @@ class Server(BaseHTTPRequestHandler):
                     # En Unity: X es columnas, Z es renglones (generalmente)
                     
                     # CUIDADO: Verifica si step_pos es numpy array o lista
-                    y_grid = float(step_pos[0]) 
-                    x_grid = float(step_pos[1])
+                    x_grid = float(step_pos[0])
+                    y_grid = float(step_pos[1])
+                    # print(step_pos)
+                    # print(x_grid, y_grid)
                     
                     # Creamos objeto posición para Unity (x, y, z)
                     # Asumimos Y=0 para el suelo
@@ -74,7 +74,7 @@ class Server(BaseHTTPRequestHandler):
         
         self._set_response()
         self.wfile.write(json.dumps(final_data).encode('utf-8'))
-        
+        simulation.show()
 
 
 def run(server_class=HTTPServer, handler_class=Server, port=8585):

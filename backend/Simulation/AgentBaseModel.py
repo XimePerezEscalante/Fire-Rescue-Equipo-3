@@ -1,7 +1,7 @@
 from mesa import Agent
 import numpy as np
 
-class AgenteBaseModel(Agent):
+class AgentBaseModel(Agent):
     def __init__(self, model, pa, id):
         super().__init__(model)
         self.model = model

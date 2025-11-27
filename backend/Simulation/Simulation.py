@@ -1,4 +1,4 @@
-from ExplorerModel import ExplorerModel
+from Simulation.ExplorerModel import ExplorerModel
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Patch
@@ -54,7 +54,7 @@ class Simulation():
         cmap = ListedColormap(colors)
 
         # Dibujar estado inicial
-        patch = axs.imshow(self.all_grids.iloc[0]["Grid"], cmap=cmap, vmin=0, vmax=4)
+        patch = axs.imshow(self.all_grids.iloc[0]["Grid"], cmap=cmap, vmin=0, vmax=4, origin='lower')
 
         # --- DIBUJAR PAREDES ---
         # Usamos la matriz de paredes del modelo

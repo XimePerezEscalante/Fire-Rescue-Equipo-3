@@ -1,9 +1,8 @@
 from mesa import Model
 from mesa.space import SingleGrid
 from mesa.datacollection import DataCollector
-from AuxFunctions import get_grid
-from AgentBaseModel import AgenteBaseModel
-from AuxFunctions import readMap
+from Simulation.AuxFunctions import readMap, get_grid 
+from Simulation.AgentBaseModel import AgentBaseModel
 import numpy as np
 
 # Grid general
@@ -52,7 +51,7 @@ class ExplorerModel(Model):
                 # CORRECCIÓN: Usar randrange(height)
                 y = self.random.randrange(height)
             if self.grid.is_cell_empty((x, y)):
-                agent = AgenteBaseModel(self, pa, i)
+                agent = AgentBaseModel(self, pa, i)
                 self.grid.place_agent(agent, (x, y))
                 self.agents.add(agent)
                 i += 1
