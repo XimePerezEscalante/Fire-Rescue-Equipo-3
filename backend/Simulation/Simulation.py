@@ -11,6 +11,9 @@ sns.set_theme()
 GRID_WIDTH = 8
 GRID_HEIGHT = 6
 AGENTS = 5
+POIS = [[1, 3, 'v'], [4, 0, 'f'], [4, 7, 'v']]
+FIRES = [[1, 1], [1, 2], [2, 1], [2, 2], [2, 3], [2, 4], [3, 3], [4, 5], [4, 6], [5, 5]]
+DOORS = [[0, 2, 0, 3], [1, 4, 1, 5], [1, 7, 2, 7], [2, 1, 2, 2], [3, 3, 4, 3], [3, 5, 3, 6], [5, 4, 5, 5], [5, 6, 5, 7]]
 MAX_ENERGY = 100
 
 class Simulation():
@@ -108,3 +111,4 @@ if __name__ == '__main__':
     simulation = Simulation(GRID_WIDTH, GRID_HEIGHT, AGENTS, MAX_ENERGY)
     simulation.runSimulation()
     json = simulation.model.agents_positions.to_json()
+    print(json)

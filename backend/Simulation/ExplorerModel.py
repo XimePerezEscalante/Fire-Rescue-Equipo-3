@@ -78,3 +78,12 @@ class ExplorerModel(Model):
 
     def is_all_clean(self):
         return self.steps >= 50
+
+
+if __name__ == '__main__':
+    expM = ExplorerModel()
+    print(f'walls: \n{expM.walls}\n')
+    print(f'POIS: \n{expM.pois}\n')
+    print(f'Fires: \n{expM.fires}\n')
+    print(f'Doors: \n{expM.doors}\n')
+
