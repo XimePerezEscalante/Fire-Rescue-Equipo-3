@@ -1,74 +1,99 @@
 from flask import Flask, request, jsonify
 from Simulation.Simulation import Simulation
+from Simulation.SimulationManager import SimulationManager
+from Simulation.AuxFunctions import readMap
 import json
 
-# Configuración inicial
-GRID_WIDTH = 8
-GRID_HEIGHT = 6
-AGENTS = 6
-MAX_ENERGY = 100
+DEFAULT_CONFIG = {
+    "grid_width": 8,
+    "grid_height": 6,
+    "agents": 5,
+    "max_energy": 100,
+    "random_fires": None,
+    "random_pois": None
+}
 
-app = Flask("FireRescueServer")
+class Server:
+    def __init__(self, port=8585):
+        self.port = port
+        self.app = Flask("FireRescueServer")
+        self.simulation_config = DEFAULT_CONFIG.copy()
+        self.configure_routes()
 
-class Server():
-    def __init__(self):
-        self.simulation = None
+    def configure_routes(self):
+        self.app.add_url_rule('/init', view_func=self.init_params, methods=['POST'])
+        self.app.add_url_rule('/getMap', view_func=self.get_map_data, methods=['GET'])
+        self.app.add_url_rule('/simulation', view_func=self.run_single_simulation, methods=['POST'])
+        self.app.add_url_rule('/run_batch', view_func=self.run_batch_experiment, methods=['POST'])
 
-    # --- RUTA 3: Solo para probar que el servidor vive ---
-    @app.route('/init', methods=['POST'])
-    def init():
+    def run(self):
+        print(f"🔥 Servidor iniciado en http://localhost:{self.port}")
+        self.app.run(port=self.port, debug=True)
+
+    # --- ENDPOINT 1: Configuración ---
+    def init_params(self):
         data = request.json
-        num_agents = data.get("agents", AGENTS) if data else AGENTS
-
-    # --- RUTA 1: Ejecutar la simulación principal ---
-    # En Unity llamarás a: http://localhost:8585/simulation
-    @app.route('/simulation', methods=['POST'])
-    def run_simulation():
-        # 1. Recibir parámetros de Unity (opcional)
-        # Si Unity envía {"agents": 10}, lo usamos. Si no, usamos el default.
-        data = request.json
-        num_agents = data.get("agents", AGENTS) if data else AGENTS
-        print(data)
-        print(f"Recibida petición de simulación con {num_agents} agentes.")
-
-        # 2. Correr la lógica (Copiado de tu código original)
-        simulation = Simulation(GRID_WIDTH, GRID_HEIGHT, num_agents, MAX_ENERGY)
-        simulation.runSimulation()
+        if not data:
+            self.simulation_config = DEFAULT_CONFIG.copy()
+            return jsonify({"msg": "Default config loaded", "config": self.simulation_config})
         
-        results = []
+        try:
+            # Actualizamos valores
+            self.simulation_config["agents"] = int(data.get("agents", DEFAULT_CONFIG["agents"]))
+            self.simulation_config["max_energy"] = int(data.get("maxEnergy", DEFAULT_CONFIG["max_energy"]))
+            # Si el cliente manda num_fires, activamos modo aleatorio
+            self.simulation_config["random_fires"] = data.get("num_fires", None) 
+            self.simulation_config["random_pois"] = data.get("num_pois", None)
+            
+            return jsonify({"msg": "Config updated", "config": self.simulation_config})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    # --- ENDPOINT 2: Obtener Mapa ---
+    def get_map_data(self):
+        try:
+            map_data = readMap()
+            # Fusionamos dimensiones + datos del mapa
+            response = {
+                "width": self.simulation_config["grid_width"],
+                "height": self.simulation_config["grid_height"]
+            }
+            response.update(map_data)
+            return jsonify(response)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # --- ENDPOINT 3: Simulación Única (Visual) ---
+    def run_single_simulation(self):
+        # Extraemos configuración
+        cfg = self.simulation_config
         
-        # Procesar posiciones (Copiado de tu código original)
-        if hasattr(simulation.model.agents_positions, 'columns'):
-            for agent_id in simulation.model.agents_positions.columns:
-                path_list = []
-                for step_pos in simulation.model.agents_positions[agent_id]:
-                    x_grid = float(step_pos[0])
-                    y_grid = float(step_pos[1])
-                    # Unity usa Y como altura, por eso Z es la coordenada Y del grid
-                    pos_obj = {"x": x_grid, "y": 0.5, "z": y_grid}
-                    path_list.append(pos_obj)
-                results.append({"id": int(agent_id), "path": path_list})
-                
-        final_data = {"results": results}
+        sim = Simulation(
+            cfg["grid_width"], cfg["grid_height"], 
+            cfg["agents"], cfg["max_energy"],
+            random_fires=cfg["random_fires"],
+            random_pois=cfg["random_pois"]
+        )
+        sim.runSimulation()
+        
+        # Formatear para Unity
+        return jsonify(sim.get_results_json())
 
-        # Opcional: Mostrar la gráfica en el servidor (Cuidado: esto abre una ventana en Python)
-        # simulation.show() 
+    # --- ENDPOINT 4: Lote Paralelo (Estadístico) ---
+    def run_batch_experiment(self):
+        cfg = self.simulation_config
+        # Si el cliente manda parámetros específicos para el batch, usarlos, si no, usar config
+        data = request.json or {}
+        iterations = data.get("iterations", 50)
+        strategy = data.get("strategy", "random")
 
-        # 3. Responder a Unity
-        return jsonify(final_data)
-
-    # --- RUTA 2: Nueva función (Ejemplo: Obtener Mapa) ---
-    # En Unity llamarás a: http://localhost:8585/getMap
-    @app.route('/getMap', methods=['GET', 'POST'])
-    def get_map():
-        # Aquí podrías leer tu archivo txt o instanciar el modelo para sacar las paredes
-        map_info = {
-            "width": GRID_WIDTH,
-            "height": GRID_HEIGHT,
-            "walls" : 0,
-        }
-        return jsonify(map_info)
-
-if __name__ == '__main__':
-    # debug=True permite que el servidor se reinicie si haces cambios en el código
-    app.run(port=8585, debug=True)
+        manager = SimulationManager()
+        results = manager.run_parallel_experiment(
+            cfg["grid_width"], cfg["grid_height"], 
+            cfg["agents"], cfg["max_energy"],
+            iterations=iterations,
+            strategy=strategy,
+            random_fires=cfg["random_fires"],
+            random_pois=cfg["random_pois"]
+        )
+        return jsonify(results)
