@@ -3,6 +3,7 @@ using System;
 
 public class BoardManager : MonoBehaviour
 {
+    AudioSystem audioSystem;
     public GameObject wallPrefab;
     public GameObject wallDoorwayPrefab;
     public GameObject doorPrefab;
@@ -68,6 +69,10 @@ public class BoardManager : MonoBehaviour
         {6, 6}
     };
 
+    private void Awake()
+    {
+        audioSystem = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioSystem>();
+    }
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -78,6 +83,7 @@ public class BoardManager : MonoBehaviour
         AddDoorsToWallMatrix();
         PlaceWalls();
         InstantiateFire();
+        Explosion(1, 1);
         //updateValues("1100", 1, '2');
     }
 
@@ -154,8 +160,8 @@ public class BoardManager : MonoBehaviour
     {
         float XCoord = 0f;
         float ZCoord = 0f;
-
-        for (int i = 0;i < Fire.Length;i++)
+        
+        for (int i = 0;i < (Fire.Length / 2);i++)
         {
             // Restar 1 al valor para ajustarse a las coordenadas correctas
             XCoord = (Fire[i, 1] - 1) * 6.4f;
@@ -166,6 +172,11 @@ public class BoardManager : MonoBehaviour
             Quaternion spawnRotation = Quaternion.identity;
             Instantiate(firePrefab, spawnPosition, spawnRotation);
         }
+    }
+
+    private void Explosion(int row, int col)
+    {
+        audioSystem.PlaySFX(audioSystem.explosion);
     }
 
     private string updateValues(string currentValue, int place, char newValue)
