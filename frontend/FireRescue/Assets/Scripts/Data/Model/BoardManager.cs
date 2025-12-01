@@ -53,6 +53,21 @@ public class BoardManager : MonoBehaviour
         {4, 8}, 
         {6, 3}
     };
+
+    private static int[,] Fire = new int[10,2]
+    {
+        {2, 2}, 
+        {2, 3},
+        {3, 2}, 
+        {3, 3},
+        {3, 4}, 
+        {3, 5},
+        {4, 4}, 
+        {5, 6},
+        {5, 7},
+        {6, 6}
+    };
+
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -62,6 +77,7 @@ public class BoardManager : MonoBehaviour
         ZWall = 0;
         AddDoorsToWallMatrix();
         PlaceWalls();
+        InstantiateFire();
         //updateValues("1100", 1, '2');
     }
 
@@ -131,6 +147,21 @@ public class BoardManager : MonoBehaviour
         {
             // Crear instancia de pared con marco para puerta
             Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation);
+        }
+    }
+
+    private void InstantiateFire()
+    {
+        float XCoord = 0f;
+        float ZCoord = 0f;
+
+        for (int i = 0;i < 10;i++)
+        {
+            XCoord = (Fire[i, 1] - 1) * 6.4f;
+            ZCoord = (6 - Fire[i, 0]) * 6.4f;
+            Vector3 spawnPosition = new Vector3(XCoord, 1.72f, ZCoord);
+            Quaternion spawnRotation = Quaternion.identity;
+            Instantiate(firePrefab, spawnPosition, spawnRotation);
         }
     }
 
