@@ -1,74 +1,149 @@
 from mesa import Agent
-import numpy as np
+import random
 
 class AgentBaseModel(Agent):
-    def __init__(self, model, pa, id):
+    def __init__(self, model, pa, id, printable=False):
         super().__init__(model)
         self.model = model
-        #Atributos del agente
+        self.id = id
+        self.printable = printable
         self.pa = pa
-        self.extraPA = 0
-        self.totalPA = self.pa + self.extraPA
-        self.hasFood = False
-        #Para estadisticas
-        self.timeToSavePOI = None # Lista con tiempos en los que salva a POIs
-        self.fireExtinguish = 0
-        self.dazedTimes = 0
-        self.cellsVisited = 0
-        self.id = id;
-
-    def check_door(self, next_pos):
-        curr_x, curr_y = self.pos
-        next_x, next_y = next_pos
+        self.totalPA = pa 
+        self.carrying_victim = False
+        self.role = "Base"
         
-        # Creamos los pares de coordenadas numéricas
-        # Opción 1: Paso de Actual -> Siguiente
-        pair1 = [curr_y, curr_x, next_y, next_x]
-        # Opción 2: Paso de Siguiente -> Actual (Bidireccional)
-        pair2 = [next_y, next_x, curr_y, curr_x]
-        
-        if hasattr(self.model, 'doors'):
-            for door in self.model.doors:
-                # 'door' ahora es una lista de 4 enteros [r1, c1, r2, c2]
-                if door == pair1 or door == pair2:
-                    return True
-        return False
-
-    def move(self):
-        # (El resto de tu función move se queda igual, 
-        # asegúrate de llamar a self.check_door(choice) donde lo pusimos antes)
-        possible_steps = list(self.model.grid.get_neighborhood(
-            self.pos, moore=False, include_center=False
-        ))
-        np.random.shuffle(possible_steps)
-
-        for step in possible_steps:
-            curr_x, curr_y = self.pos
-            next_x, next_y = step
-            dx = next_x - curr_x
-            dy = next_y - curr_y
-
-            wall_index = -1
-            if dy == -1: wall_index = 0
-            elif dx == -1: wall_index = 1
-            elif dy == 1: wall_index = 2
-            elif dx == 1: wall_index = 3
-            
-            # Verificación de pared
-            has_wall = False
-            if 0 <= curr_y < len(self.model.walls) and 0 <= curr_x < len(self.model.walls[0]):
-                current_walls = self.model.walls[curr_y][curr_x]
-                if current_walls[wall_index] == '1':
-                    has_wall = True
-            
-            # Chequeo de Puertas
-            if has_wall and self.check_door(step):
-                has_wall = False
-
-            if not has_wall and self.model.grid.is_cell_empty(step):
-                self.model.grid.move_agent(self, step)
-                self.pa -= 1
-                break
+        # Estadísticas simples
+        self.steps_taken = 0
 
     def step(self):
-        self.move()
+        self.pa = self.totalPA 
+
+        while self.pa > 0:
+            neighbors = self.get_valid_neighbors()
+            if not neighbors:
+                break
+
+            target_pos = self.decision_choose_movement(neighbors)
+            action_taken = self.attempt_action(target_pos)
+            
+            if action_taken:
+                # Si hizo algo, avisamos al modelo para registrar el "micro-paso"
+                self.model.notify_observer()
+            else:
+                break
+
+    # --- DECISIONES ---
+    def decision_choose_movement(self, possible_steps):
+        return random.choice(possible_steps)
+
+    def decision_extinguish_fire(self):
+        return random.choice([True, False])
+
+    def decision_chop_wall(self):
+        return random.choice([True, False])
+    
+    def decision_open_door(self):
+        return random.choice([True, False])
+
+    def decision_reveal_poi(self):
+        return random.choice([True, False])
+
+    def decision_rescue_victim(self):
+        return random.choice([True, False])
+
+    # --- ACCIONES ---
+    def get_valid_neighbors(self):
+        # MultiGrid permite obtener vecindad igual que SingleGrid
+        return self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+
+    def attempt_action(self, target_pos):
+        curr_pos = self.pos
+        cx, cy = curr_pos
+        tx, ty = target_pos
+        
+        # Dirección
+        wall_dir = -1
+        if ty > cy: wall_dir = 0 
+        elif tx > cx: wall_dir = 1 
+        elif ty < cy: wall_dir = 2 
+        elif tx < cx: wall_dir = 3 
+
+        # 1. OBSTÁCULOS (Paredes y Puertas)
+        if self.model.has_wall(cx, cy, wall_dir):
+            if self.printable:
+                print(f"   🧱 Agente {self.id}: Pared detectada hacia {target_pos}.")
+            if self.pa >= 2 and self.decision_chop_wall():
+                if self.printable:
+                    print(f"   🪓 Agente {self.id}: Rompiendo pared (-2 PA).")
+                self.model.remove_wall(cx, cy, wall_dir)
+                self.model.damage_taken += 1
+                self.pa -= 2
+                return True
+            return False
+
+        door_idx = self.model.get_door_index(curr_pos, target_pos)
+        if door_idx != -1:
+            if self.model.doors[door_idx][2] == 'Closed':    
+                if self.printable:
+                    print(f"   🚪 Agente {self.id}: Puerta cerrada hacia {target_pos}.")
+                if self.pa >= 1 and self.decision_open_door():
+                    if self.printable:
+                        print(f"   👐 Agente {self.id}: Abriendo puerta (-1 PA).")
+                    self.model.doors[door_idx][2] = 'Open'
+                    self.pa -= 1
+                    return True 
+                else:
+                    return False 
+
+        # 2. PELIGROS (Fuego) - Regla: Debe apagar para entrar
+        cell_status = self.model.get_cell_status(target_pos)
+        if cell_status in ['Fire', 'Smoke']:
+            if self.printable:
+                print(f"   🔥 Agente {self.id}: {cell_status} en destino {target_pos}.")
+            if self.pa >= 1:
+                if self.decision_extinguish_fire():
+                    if self.printable:
+                        print(f"   💦 Agente {self.id}: Extinguiendo desde fuera (-1 PA).")
+                    self.model.downgrade_fire(target_pos)
+                    self.pa -= 1
+                    return True 
+                else:
+                    return False
+            else:
+                return False
+
+        # 3. MOVIMIENTO
+        if self.pa >= 1:
+            if self.printable:
+                print(f"   🦶 Agente {self.id}: Moviéndose a {target_pos}.")
+            self.model.grid.move_agent(self, target_pos)
+            self.pa -= 1
+            
+            # Interacción con POI
+            if self.model.is_poi(target_pos):
+                if self.printable:
+                    print(f"   ❓ Agente {self.id}: POI encontrado en {target_pos}.")
+                if self.decision_reveal_poi():
+                    poi_type = self.model.reveal_poi(target_pos)
+                    if self.printable:
+                        print(f"   👀 Agente {self.id}: Revelado -> {poi_type}")
+                    
+                    if poi_type == 'Victim':
+                        # Lógica de rescate
+                        if not self.carrying_victim and self.decision_rescue_victim():
+                            if self.printable:
+                                print(f"   🚑 Agente {self.id}: ¡Víctima recogida! Llévala a la ambulancia.")
+                            self.carrying_victim = True
+                            self.model.remove_poi(target_pos)
+                            self.model.replenish_pois() 
+                            
+                        else:
+                            pass # La deja ahí si decide no rescatar
+                    else:
+                        if self.printable:
+                            print(f"   💨 Agente {self.id}: Falsa alarma.")
+                        self.model.remove_poi(target_pos)
+                        self.model.replenish_pois()
+            return True
+        
+        return False

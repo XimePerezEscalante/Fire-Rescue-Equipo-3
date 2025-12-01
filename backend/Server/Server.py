@@ -74,7 +74,7 @@ class Server:
             random_fires=cfg["random_fires"],
             random_pois=cfg["random_pois"]
         )
-        sim.runSimulation()
+        sim.run()
         
         # Formatear para Unity
         return jsonify(sim.get_results_json())
