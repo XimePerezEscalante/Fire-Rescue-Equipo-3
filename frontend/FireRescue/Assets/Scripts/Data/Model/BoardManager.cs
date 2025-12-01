@@ -8,7 +8,7 @@ public class BoardManager : MonoBehaviour
     public GameObject wallDoorwayPrefab;
     public GameObject doorPrefab;
     public GameObject unknownPointOfInterestPrefab;
-    public GameObject knownPointOfInterestPrefab;
+    public GameObject[] knownPointsOfInterestPrefab;
     public GameObject firePrefab;
     public static float XWall{get; private set;}
     public static float YWall{get; private set;}
@@ -16,7 +16,7 @@ public class BoardManager : MonoBehaviour
     private static string[,,] Walls = new string[6,8,1]
         {
             {
-                {"1100"},{"1000"},{"1001"},{"1100"},{"1001"},{"3100"},{"1000"}, {"1001"}
+                {"1100"},{"1000"},{"1001"},{"1100"},{"1001"},{"1100"},{"1000"}, {"1001"}
             },
             {
                 {"0100"},{"0000"},{"0011"},{"0110"},{"0011"},{"0110"},{"0010"},{"0011"}
@@ -31,7 +31,7 @@ public class BoardManager : MonoBehaviour
                 {"1100"},{"1000"},{"1000"},{"1000"},{"1001"},{"1100"},{"1001"},{"1101"}
             },
             {
-                {"0110"},{"0010"},{"0030"},{"0010"},{"0011"},{"0110"},{"0011"},{"0111"}
+                {"0110"},{"0010"},{"0010"},{"0010"},{"0011"},{"0110"},{"0011"},{"0111"}
             }
         };
     
@@ -69,6 +69,13 @@ public class BoardManager : MonoBehaviour
         {6, 6}
     };
 
+    private static int[,] POI = new int[3,2]
+    {
+        {2, 4},
+        {5, 1},
+        {5, 8}
+    };
+
     private void Awake()
     {
         audioSystem = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioSystem>();
@@ -80,10 +87,11 @@ public class BoardManager : MonoBehaviour
         XWall = 0;
         YWall = 0.5f;
         ZWall = 0;
+        AddEntryPointsToWallMatrix();
         AddDoorsToWallMatrix();
         PlaceWalls();
         InstantiateFire();
-        Explosion(1, 1);
+        // Explosion(1, 1);
         //updateValues("1100", 1, '2');
     }
 
@@ -160,7 +168,7 @@ public class BoardManager : MonoBehaviour
     {
         float XCoord = 0f;
         float ZCoord = 0f;
-        
+
         for (int i = 0;i < (Fire.Length / 2);i++)
         {
             // Restar 1 al valor para ajustarse a las coordenadas correctas
@@ -171,6 +179,24 @@ public class BoardManager : MonoBehaviour
             Vector3 spawnPosition = new Vector3(XCoord, 1.72f, ZCoord);
             Quaternion spawnRotation = Quaternion.identity;
             Instantiate(firePrefab, spawnPosition, spawnRotation);
+        }
+    }
+
+    private void InstantiatePOI()
+    {
+        float XCoord = 0f;
+        float ZCoord = 0f;
+
+        for (int i = 0;i < (POI.Length / 2);i++)
+        {
+            // Restar 1 al valor para ajustarse a las coordenadas correctas
+            XCoord = (POI[i, 1] - 1) * 6.4f;
+            // Restarle a 6 el valor para ajustarse a las coordenadas del tablero
+            ZCoord = (6 - POI[i, 0]) * 6.4f;
+            // Crear valores para instanciar el objeto
+            Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
+            Quaternion spawnRotation = Quaternion.identity;
+            Instantiate(unknownPointOfInterestPrefab, spawnPosition, spawnRotation);
         }
     }
 
@@ -253,12 +279,39 @@ public class BoardManager : MonoBehaviour
 
     private void AddEntryPointsToWallMatrix()
     {
+        string currentValue;
+
         for (int i = 0;i < 4;i++)
         {
-            // Si [i,0] es 1 o 6
-            if (EntryPoints[i,1] > 1 && EntryPoints[i,1] < 8)
+            // Celda a modificar
+            currentValue = Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0];
+
+            // Columna 1
+            if (EntryPoints[i,1] == 1)
             {
-                
+                // Entry Point va en la pared izquierda
+                Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 1, '3');
+            }
+            // Columna 8
+            else if (EntryPoints[i,1] == 8)
+            {
+                // Entry Point va en la pared derecha
+                Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 3, '3');
+            }
+            else
+            {
+                // Fila 1
+                if (EntryPoints[i,0] == 1)
+                {
+                    // Entry Point va en la pared de arriba
+                    Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 0, '3');
+                }
+                // Fila 6
+                else if (EntryPoints[i,0] == 6)
+                {
+                    // Entry Point va en la pared de abajo
+                    Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 2, '3');
+                }
             }
         }
     }
