@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class BoardManager : MonoBehaviour
 {
@@ -14,24 +15,44 @@ public class BoardManager : MonoBehaviour
     private static string[,,] Walls = new string[6,8,1]
         {
             {
-                {"1100"},{"1000"},{"1001"},{"1200"},{"1001"},{"3100"},{"1000"}, {"1001"}
+                {"1100"},{"1000"},{"1001"},{"1100"},{"1001"},{"3100"},{"1000"}, {"1001"}
             },
             {
-                {"0100"},{"0000"},{"0011"},{"0110"},{"0011"},{"0210"},{"0010"},{"0021"}
+                {"0100"},{"0000"},{"0011"},{"0110"},{"0011"},{"0110"},{"0010"},{"0011"}
             },
             {
-                {"0100"},{"0001"},{"1200"},{"1000"},{"1000"},{"1001"},{"1100"},{"1001"}
+                {"0100"},{"0001"},{"1100"},{"1000"},{"1000"},{"1001"},{"1100"},{"1001"}
             },
             {
-                {"0110"},{"0011"},{"0110"},{"0010"},{"0010"},{"0011"},{"0210"},{"0011"}
+                {"0110"},{"0011"},{"0110"},{"0010"},{"0010"},{"0011"},{"0110"},{"0011"}
             },
             {
-                {"1100"},{"1000"},{"1000"},{"2000"},{"1001"},{"1100"},{"1001"},{"1101"}
+                {"1100"},{"1000"},{"1000"},{"1000"},{"1001"},{"1100"},{"1001"},{"1101"}
             },
             {
-                {"0110"},{"0010"},{"0030"},{"0010"},{"0011"},{"0210"},{"0011"},{"0211"}
+                {"0110"},{"0010"},{"0030"},{"0010"},{"0011"},{"0110"},{"0011"},{"0111"}
             }
         };
+    
+    private static int[,] Doors = new int[8,4]
+    {
+        {1, 3, 1, 4},
+        {2, 5, 2, 6},
+        {2, 8, 3, 8},
+        {3, 2, 3, 3},
+        {4, 4, 5, 4},
+        {4, 6, 4, 7},
+        {6, 5, 6, 6},
+        {6, 7, 6, 8}
+    };
+
+    private static int[,] EntryPoints = new int[4,2]
+    {
+        {1, 6}, 
+        {3, 1},
+        {4, 8}, 
+        {6, 3}
+    };
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -39,7 +60,9 @@ public class BoardManager : MonoBehaviour
         XWall = 0;
         YWall = 0.5f;
         ZWall = 0;
+        AddDoorsToWallMatrix();
         PlaceWalls();
+        //updateValues("1100", 1, '2');
     }
 
     // Update is called once per frame
@@ -108,6 +131,90 @@ public class BoardManager : MonoBehaviour
         {
             // Crear instancia de pared con marco para puerta
             Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation);
+        }
+    }
+
+    private string updateValues(string currentValue, int place, char newValue)
+    {
+        // constructing a string from a char array, prefix it with some additional characters
+        char[] chars = {'a', 'b', 'c', 'd', '\0'};
+        int length = 4;
+        string result = string.Create(length, chars, (Span<char> strContent, char[] charArray) =>
+        {
+            for (int i = 0;i < length;i++)
+            {
+                if (i == place)
+                {
+                    strContent[i] = newValue;
+                }
+                else 
+                {
+                    strContent[i] = currentValue[i];
+                }
+            }
+        });
+
+        Debug.Log(result);
+        return result;
+    }
+
+    private void AddDoorsToWallMatrix()
+    {
+        int currentI;
+        int currentJ;
+        string currentValue;
+
+        for (int i = 0;i < 8;i++)
+        {
+            currentI = Doors[i,0];
+            currentJ = Doors[i,1];
+
+            // La puerta conduce a la misma fila
+            if (Doors[i,2] == currentI)
+            {
+                // Hacia la celda de la derecha
+                if (Doors[i,3] > currentJ)
+                {
+                    currentValue = Walls[currentI - 1, currentJ, 0];
+                    //currentValue[1] = '2';
+                    Walls[currentI - 1, currentJ, 0] = updateValues(currentValue, 1, '2');;
+                }
+                // Hacia la celda de la izquierda
+                else if (Doors[i,3] > currentJ)
+                {
+                    currentValue = Walls[currentI - 1, currentJ - 2, 0];
+                    //currentValue[1] = '2';
+                    Walls[currentI - 1, currentJ - 2, 0] = updateValues(currentValue, 1, '2');;
+                }
+            }
+            // La puerta conduce a la fila de arriba
+            else if (Doors[i,2] < currentI)
+            {
+                currentValue = Walls[currentI - 1, currentJ - 1, 0];
+                //currentValue[0] = '2';
+                Walls[currentI - 1, currentJ - 1, 0] = updateValues(currentValue, 0, '2');;
+            }
+            // La puerta conduce a la fila de abajo
+            else if (Doors[i,2] > currentI)
+            {
+                currentValue = Walls[currentI, currentJ - 1, 0];
+                //currentValue[0] = '2';
+                Debug.Log("CURRENT VALUE " + currentValue + "CURRENT I = " + currentI);
+                Walls[currentI, currentJ - 1, 0] = updateValues(currentValue, 0, '2');;
+            }
+            
+        }
+    }
+
+    private void AddEntryPointsToWallMatrix()
+    {
+        for (int i = 0;i < 4;i++)
+        {
+            // Si [i,0] es 1 o 6
+            if (EntryPoints[i,1] > 1 && EntryPoints[i,1] < 8)
+            {
+                
+            }
         }
     }
 
@@ -376,9 +483,9 @@ public class BoardManager : MonoBehaviour
                             InstantiateWall(1, 6.4f * j, 0.5f, 6.4f * (6 - i) - 3, 0);
                         }
                         // Hay punto de entrada
-                        else if (CheckUp(Walls[i,j,0]) == 3)
+                        else if (CheckUp(Walls[i,j,0]) == 2)
                         {
-                            InstantiateWall(3, 6.4f * j, 0.5f, 6.4f * (6 - i) - 3, 0);
+                            InstantiateWall(2, 6.4f * j, 0.5f, 6.4f * (6 - i) - 3, 0);
                         }
 
                         // Checar pared de la izquierda
@@ -397,7 +504,7 @@ public class BoardManager : MonoBehaviour
                         // Hay pared
                         if (CheckRight(Walls[i,j,0]) == 1)
                         {
-                            Debug.Log("RIGHT WALL i: " + i + " Z: " + 6.4f * (6 - i - 1));
+                            //Debug.Log("RIGHT WALL i: " + i + " Z: " + 6.4f * (6 - i - 1));
                             InstantiateWall(1, 47.71f, 0.5f, 6.4f * (6 - i - 1), 90f);
                         }
                         // Hay punto de entrada
