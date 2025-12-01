@@ -1,2 +1,17 @@
 fileFormatVersion: 2
 guid: 483b32dc5cb494ca4949a33f5ace75e2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - wallPrefab: {instanceID: 0}
+  - wallDoorwayPrefab: {instanceID: 0}
+  - doorPrefab: {instanceID: 0}
+  - unknownPointOfInterestPrefab: {instanceID: 0}
+  - knownPointOfInterestPrefab: {instanceID: 0}
+  - firePrefab: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
