@@ -2,73 +2,128 @@ from mesa import Agent
 import numpy as np
 
 class AgentBaseModel(Agent):
-    def __init__(self, model, pa, id):
-        super().__init__(model)
-        self.model = model
-        #Atributos del agente
+    """
+    Clase base para los agentes (bomberos) en la simulación,
+    implementando la lógica de movimiento y aturdimiento personalizada.
+    """
+    def __init__(self, model, pa, unique_id):
+        super().__init__(unique_id, model)
+        
+        # Propiedades del agente
         self.pa = pa
-        self.extraPA = 0
-        self.totalPA = self.pa + self.extraPA
-        self.hasFood = False
-        #Para estadisticas
-        self.timeToSavePOI = None # Lista con tiempos en los que salva a POIs
-        self.fireExtinguish = 0
+        self.current_ap = pa
+        self.carrying_victim = False
         self.dazedTimes = 0
-        self.cellsVisited = 0
-        self.id = id;
+        self.dazed_in_prev_turn = False 
+    
+    # --- Métodos de Ayuda ---
+    
+    def get_movement_cost(self, y, x):
 
-    def check_door(self, next_pos):
-        curr_x, curr_y = self.pos
-        next_x, next_y = next_pos
+        is_fire = self.model.get_fire_at(y, x)
+        is_poi = self.model.get_poi_at(y, x)
         
-        # Creamos los pares de coordenadas numéricas
-        # Opción 1: Paso de Actual -> Siguiente
-        pair1 = [curr_y, curr_x, next_y, next_x]
-        # Opción 2: Paso de Siguiente -> Actual (Bidireccional)
-        pair2 = [next_y, next_x, curr_y, curr_x]
-        
-        if hasattr(self.model, 'doors'):
-            for door in self.model.doors:
-                # 'door' ahora es una lista de 4 enteros [r1, c1, r2, c2]
-                if door == pair1 or door == pair2:
-                    return True
+        if is_fire or is_poi:
+            return 2
+        elif self.model.get_smoke_at(y, x):
+            return 1
+        else:
+            return 1
+
+    def get_neighbors(self):
+        return self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+
+    # --- Lógica de Acciones ---
+
+    def resolve_daze_movement(self):
+        if self.dazed_in_prev_turn:
+            
+            # Mover al Entry Point más cercano
+            entry = self.model.find_closest_entry_point(self.pos[1], self.pos[0])
+            if entry:
+                new_pos = (entry[1], entry[0]) 
+                self.model.grid.move_agent(self, new_pos)
+            
+            self.dazed_in_prev_turn = False 
+            return True
         return False
 
-    def move(self):
-        # (El resto de tu función move se queda igual, 
-        # asegúrate de llamar a self.check_door(choice) donde lo pusimos antes)
-        possible_steps = list(self.model.grid.get_neighborhood(
-            self.pos, moore=False, include_center=False
-        ))
-        np.random.shuffle(possible_steps)
-
-        for step in possible_steps:
-            curr_x, curr_y = self.pos
-            next_x, next_y = step
-            dx = next_x - curr_x
-            dy = next_y - curr_y
-
-            wall_index = -1
-            if dy == -1: wall_index = 0
-            elif dx == -1: wall_index = 1
-            elif dy == 1: wall_index = 2
-            elif dx == 1: wall_index = 3
+    def move(self, new_pos):
+        """
+        Mueve el agente a una nueva posición.
+        """
+        x, y = self.pos # Posición actual (x, y)
+        nx, ny = new_pos 
+        
+        # 1. Chequeo de Barreras
+        if self.model.has_wall_between(y, x, ny, nx):
+            return False
             
-            # Verificación de pared
-            has_wall = False
-            if 0 <= curr_y < len(self.model.walls) and 0 <= curr_x < len(self.model.walls[0]):
-                current_walls = self.model.walls[curr_y][curr_x]
-                if current_walls[wall_index] == '1':
-                    has_wall = True
+        # 2. Determinar Costo de AP 
+        cost = self.get_movement_cost(ny, nx)
+        
+        # 3. Mover si hay suficiente AP
+        if self.current_ap >= cost:
+            self.current_ap -= cost
+            self.model.grid.move_agent(self, new_pos)
             
-            # Chequeo de Puertas
-            if has_wall and self.check_door(step):
-                has_wall = False
+            return True
+            
+        return False
+        
+    def extinguish_hazard(self, y, x):
+        if self.model.get_fire_at(y, x):
+            cost = 2
+            if self.current_ap < cost: return False
+            
+            self.model.fires.remove([y, x])
+            self.current_ap -= cost
+            return True
+            
+        elif self.model.get_smoke_at(y, x):
+            cost = 1
+            if self.current_ap < cost: return False
+            
+            self.model.smoke.remove([y, x])
+            self.current_ap -= cost
+            return True
+        
+        return False
 
-            if not has_wall and self.model.grid.is_cell_empty(step):
-                self.model.grid.move_agent(self, step)
-                self.pa -= 1
-                break
-
+    
     def step(self):
-        self.move()
+
+        while self.current_ap > 0:
+            current_y, current_x = self.pos[1], self.pos[0]
+            actions = [] 
+
+            if self.model.get_fire_at(current_y, current_x) or self.model.get_smoke_at(current_y, current_x):
+                if self.current_ap >= 1: 
+                    actions.append(('extinguish', (current_y, current_x)))
+
+            
+            neighbors = self.get_neighbors()
+            
+            for nx, ny in neighbors:
+                
+                if self.model.get_fire_at(ny, nx) or self.model.get_smoke_at(ny, nx):
+                    if self.current_ap >= 1:
+                        actions.append(('extinguish', (ny, nx)))
+
+                cost = self.get_movement_cost(ny, nx)
+                if self.current_ap >= cost:
+                    actions.append(('move', ((nx, ny), cost)))
+            
+            
+            
+            if not actions:
+                break 
+
+            action_type, args = self.model.random.choice(actions)
+            
+            if action_type == 'extinguish':
+                self.extinguish_hazard(args[0], args[1]) 
+            
+            elif action_type == 'move':
+                new_pos, cost = args
+                self.move(new_pos)
