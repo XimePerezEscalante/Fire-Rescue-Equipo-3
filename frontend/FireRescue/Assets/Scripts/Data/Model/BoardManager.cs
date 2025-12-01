@@ -155,10 +155,13 @@ public class BoardManager : MonoBehaviour
         float XCoord = 0f;
         float ZCoord = 0f;
 
-        for (int i = 0;i < 10;i++)
+        for (int i = 0;i < Fire.Length;i++)
         {
+            // Restar 1 al valor para ajustarse a las coordenadas correctas
             XCoord = (Fire[i, 1] - 1) * 6.4f;
+            // Restarle a 6 el valor para ajustarse a las coordenadas del tablero
             ZCoord = (6 - Fire[i, 0]) * 6.4f;
+            // Crear valores para instanciar el objeto
             Vector3 spawnPosition = new Vector3(XCoord, 1.72f, ZCoord);
             Quaternion spawnRotation = Quaternion.identity;
             Instantiate(firePrefab, spawnPosition, spawnRotation);
