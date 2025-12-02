@@ -22,6 +22,7 @@ class ExplorerModel(Model):
         self.doors = mapData['doors'] 
         self.fires = [[f[0], f[1], 2] for f in mapData['fires']]
         self.pois = mapData['pois'] 
+        self.entryPoints = mapData['entryPoints']
         
         self.replenish_pois()
 
@@ -36,21 +37,39 @@ class ExplorerModel(Model):
 
         self.agents_list = []
         
+        # === POSICIONES DE AMBULANCIAS ===
+        ambulance_positions = [(ep[1], ep[0]) for ep in self.entryPoints]
+        
+        # Dividir ambulancias: 2 para bomberos, 2 para rescatistas
+        firefighter_spots = [ambulance_positions[0], ambulance_positions[1]]
+        rescuer_spots = [ambulance_positions[2], ambulance_positions[3]]
+        
+        # === CREAR Y COLOCAR AGENTES ===
+        firefighter_count = 0
+        rescuer_count = 0
+        
         for i in range(agents):
-            pos = (0, 0) # O tu lógica de posición inicial
-            
             if self.strategy == "intelligent":
-                # Ejemplo: Mitad apagadores, mitad rescate
                 if i % 2 == 0:
-                    a = AgentFireFighter(self, pa, i)
+                    # Bombero
+                    pos = firefighter_spots[firefighter_count % len(firefighter_spots)]
+                    a = AgentFireFighter(self, pa, i, printable=self.printable)
+                    firefighter_count += 1
                 else:
-                    a = AgenteRescuer(self, pa, i)
+                    # Rescatista
+                    pos = rescuer_spots[rescuer_count % len(rescuer_spots)]
+                    a = AgenteRescuer(self, pa, i, printable=self.printable)
+                    rescuer_count += 1
             else:
-                # Estrategia base (Random)
-                a = AgentBaseModel(self, pa, i)
-                
+                # Random: usar cualquier ambulancia
+                pos = ambulance_positions[i % len(ambulance_positions)]
+                a = AgentBaseModel(self, pa, i, printable=self.printable)
+            
             self.grid.place_agent(a, pos)
             self.agents_list.append(a)
+            
+            if self.printable:
+                print(f"🚒 Agente {i} ({a.role}) en {pos}")
 
     def notify_observer(self):
         """ Método para que los agentes avisen que hicieron una acción """
@@ -74,22 +93,34 @@ class ExplorerModel(Model):
         for agent in self.agents_list:
             if not self.running: break
             agent.step()
-            self.check_game_over()
             
-            if self.running:
-                self.advance_fire()
-                self.notify_observer()
-                self.check_game_over()
+            self.advance_fire()
+            self.replenish_pois()
+            self.notify_observer()
+            self.check_game_over()
         
         self.steps += 1
 
     # --- PUERTAS ---
     def get_door_index(self, pos1, pos2):
-        p1 = (pos1[1], pos1[0]) 
-        p2 = (pos2[1], pos2[0])
+        """
+        Busca si hay una puerta entre pos1 y pos2.
+        pos1 y pos2 son tuplas (x, y) en formato Mesa.
+        Las puertas están guardadas como [(y1, x1), (y2, x2), status]
+        """
+        # Convertir a (y, x) para buscar
+        y1, x1 = pos1[1], pos1[0]
+        y2, x2 = pos2[1], pos2[0]
+        
         for i, d in enumerate(self.doors):
-            if (d[0] == p1 and d[1] == p2) or (d[0] == p2 and d[1] == p1):
+            door_p1 = d[0]  # (y, x)
+            door_p2 = d[1]  # (y, x)
+            
+            # Verificar ambas direcciones
+            if ((door_p1 == (y1, x1) and door_p2 == (y2, x2)) or
+                (door_p1 == (y2, x2) and door_p2 == (y1, x1))):
                 return i
+        
         return -1
 
     # --- POIS ---
@@ -124,6 +155,13 @@ class ExplorerModel(Model):
         x, y = pos
         self.pois = [p for p in self.pois if not (p[0] == y and p[1] == x)]
 
+    def check_victims_and_pois_in_fire(self):
+        """Verifica POIs/Víctimas perdidos por fuego (una vez por turno)"""
+        for f in self.fires:
+            if f[2] == 2:  # Solo fuego, no humo
+                fx, fy = f[1], f[0]
+                self.check_poi_on_fire(fx, fy)
+
     def check_poi_on_fire(self, x, y):
         """
         Verifica si hay un POI en la celda (x, y) que acaba de prenderse fuego.
@@ -154,7 +192,7 @@ class ExplorerModel(Model):
                 poi_removed = True
         
         # Si se quemó un POI, hay que reponerlo en otro lado (según reglas)
-        if poi_removed:
+        if poi_removed and len(self.pois) < 3:
             self.replenish_pois()
 
     # --- PAREDES ---
@@ -184,9 +222,12 @@ class ExplorerModel(Model):
 
     # --- LÓGICA DE FUEGO ---
     def advance_fire(self):
-        rx = self.random.randint(0, self.grid.width - 1)
-        ry = self.random.randint(0, self.grid.height - 1)
-        pos = (rx, ry)
+        red_die = self.random.randint(1, 6)    # Filas (1-6)
+        black_die = self.random.randint(1, 8)  # Columnas (1-8)
+        x = black_die - 1  # Columna
+        y = self.grid.height - red_die  # Fila (invertida)
+        
+        pos = (x, y)
         status = self.get_cell_status(pos)
         
         if self.printable:
@@ -202,11 +243,12 @@ class ExplorerModel(Model):
             self.resolve_explosion(pos)
         
         self.resolve_flashover()
+        self.check_victims_and_pois_in_fire()
 
     def add_fire_or_smoke(self, pos, intensity):
         x, y = pos
         
-        # [CORREGIDO] Lógica simplificada: Si es fuego (2), verificamos POIs inmediatamente
+        # Lógica simplificada: Si es fuego (2), verificamos POIs inmediatamente
         if intensity == 2:
             self.check_poi_on_fire(x, y)
 
@@ -324,12 +366,45 @@ class ExplorerModel(Model):
     def is_fire(self, pos):
         return self.get_cell_status(pos) == 'Fire'
 
-    def downgrade_fire(self, pos):
+    def is_outside_building(self, pos):
+        """Verifica si una posición está fuera del edificio (perímetro)"""
+        x, y = pos
+        return (x == 0 or x == self.grid.width - 1 or 
+                y == 0 or y == self.grid.height - 1)
+
+    def remove_fire_completely(self, pos):
+        """Remueve fuego completamente del tablero (costo: 2 AP)"""
         x, y = pos
         for i, f in enumerate(self.fires):
             if f[0] == y and f[1] == x:
-                if f[2] == 2: f[2] = 1
-                else: self.fires.pop(i)
+                self.fires.pop(i)
+                if self.printable:
+                    print(f"      🧯 Fuego removido completamente de {pos}")
+                return
+
+    def remove_smoke(self, pos):
+        """Remueve humo del tablero (costo: 1 AP)"""
+        x, y = pos
+        for i, f in enumerate(self.fires):
+            if f[0] == y and f[1] == x and f[2] == 1:
+                self.fires.pop(i)
+                if self.printable:
+                    print(f"      💨 Humo removido de {pos}")
+                return
+
+    def downgrade_fire(self, pos):
+        """Convierte fuego a humo (1 AP) o remueve humo existente"""
+        x, y = pos
+        for i, f in enumerate(self.fires):
+            if f[0] == y and f[1] == x:
+                if f[2] == 2:  # Fuego -> Humo
+                    f[2] = 1
+                    if self.printable:
+                        print(f"      🔥→💨 Fuego convertido a humo en {pos}")
+                else:  # Humo -> Remover
+                    self.fires.pop(i)
+                    if self.printable:
+                        print(f"      💨 Humo removido de {pos}")
                 return
             
     def check_game_over(self):

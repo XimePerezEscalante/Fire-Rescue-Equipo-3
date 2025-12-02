@@ -8,7 +8,7 @@ class Simulation:
         self.seed = seed if seed is not None else random.randint(0, 100000)
         random.seed(self.seed)
         
-        self.model = ExplorerModel(width, height, agents, pa, strategy=strategy, on_step_callback=self.record_frame)
+        self.model = ExplorerModel(width, height, agents, pa, strategy=strategy, on_step_callback=self.record_frame, printable=False)
         self.simulation_data = {
             "metadata": {
                 "width": width, "height": height, "agents": agents, "seed": self.seed
@@ -18,15 +18,13 @@ class Simulation:
         # Variable para saber por qué terminó
         self.end_reason = "NOT_FINISHED" 
 
-    def run(self, max_steps=150):
-        while self.model.running and self.model.steps < max_steps:
+    def run(self):
+        while self.model.running:
             self.record_frame()
             self.model.step()
-            self.check_game_status() # Verificar si terminó en este paso
+            self.check_game_status()
         
         self.record_frame()
-        # Si se acabaron los pasos y sigue corriendo
-        if self.model.running: self.end_reason = "TIMEOUT"
 
     def check_game_status(self):
         """ Revisa el estado del modelo para actualizar end_reason """
