@@ -93,7 +93,7 @@ public class BoardManager : MonoBehaviour
         PlaceWalls();
         InstantiateFire();
         InstantiateUnknownPOI();
-        TurnPOIAround(5, 1);
+        TurnPOIAround(2, 4);
         MoveAgent(6, 1);
         // Explosion(1, 1);
         //UpdateValues("1100", 1, '2');
@@ -221,9 +221,11 @@ public class BoardManager : MonoBehaviour
 
     private void InstantiateKnownPOI(float XCoord, float ZCoord)
     {
+        int indexPOI = UnityEngine.Random.Range(0, 10);
+
         Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
         Quaternion spawnRotation = Quaternion.identity;
-        GameObject newPOI = Instantiate(knownPOIPrefabs[0], spawnPosition, spawnRotation);
+        GameObject newPOI = Instantiate(knownPOIPrefabs[indexPOI], spawnPosition, spawnRotation);
     }
 
     private void MoveAgent(int r, int c)

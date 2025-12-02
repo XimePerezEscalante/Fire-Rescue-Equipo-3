@@ -51,7 +51,7 @@ public class UnknownPOI : MonoBehaviour
         }
         
         // Destruir POI
-        //Destroy(gameObject);
+        Destroy(gameObject);
 
     }
 
