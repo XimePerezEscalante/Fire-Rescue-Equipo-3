@@ -343,10 +343,7 @@ if __name__ == "__main__":
     tasks_random = analyze_strategy(manager, "random")
     gif_tasks_queue.extend(tasks_random)
     
-    # INTELLIGENT - SOLO VICTORIAS
-    # print("\n" + "="*60)
-    # print("🧠 BUSCANDO VICTORIAS EN ESTRATEGIA INTELLIGENT")
-    # print("="*60)
+
     print("\n" + "="*60)
     print("🎲 ANALIZANDO ESTRATEGIA INTELLIGENT")
     print("="*60)

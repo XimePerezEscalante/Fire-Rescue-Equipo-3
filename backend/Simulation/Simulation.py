@@ -50,16 +50,12 @@ class Simulation:
 
     def evaluate(self):
         """ Puntaje para rankear la simulación """
-        # Sistema de puntaje para diferenciar claramente el éxito del fracaso
         score = 0
-        
         # Base fuerte según resultado
         if self.end_reason == "WIN": score += 10000
         elif self.end_reason == "LOSS_VICTIMS": score -= 5000
         elif self.end_reason == "LOSS_COLLAPSE": score -= 5000
         elif self.end_reason == "TIMEOUT": score -= 1000
-
-        # Ajustes finos
         score += (self.model.victims_saved * 500)  # Salvar es bueno
         score -= (self.model.victims_lost * 500)   # Perder víctimas es muy malo
         score -= (self.model.damage_taken * 10)    # El daño baja puntos
@@ -67,13 +63,11 @@ class Simulation:
 
         return score
     
-    # Dentro de tu clase Simulation o Model
     def calculate_final_score(self):
         """
         Calcula un puntaje numérico para determinar la calidad de la partida.
-        Fórmula: (Salvados * 100) - (Muertos * 50) - (Daño * 10) - (Pasos * 0.5)
         """
-        # Pesos (puedes ajustarlos según prefieras)
+        # Pesos
         W_SAVED = 100      # Premio por salvar
         W_LOST = -50       # Castigo por perder vidas
         W_DAMAGE = -10     # Castigo moderado por destruir el edificio
@@ -84,7 +78,6 @@ class Simulation:
                 (self.model.damage_taken * W_DAMAGE) + \
                 (self.model.steps * W_STEPS)
                 
-        # Bonificación extra si se ganó la partida para separarlo de derrotas "honrosas"
         if self.end_reason == "WIN":
             score += 200
             

@@ -185,6 +185,11 @@ class AgentBaseModel(Agent):
         # 3. MOVIMIENTO FINAL
         move_cost = 2 if self.carrying_victim else 1
 
+        if not self.model.can_move(curr_pos, target_pos):
+            if self.printable:
+                print(f"   ❗ Agente {self.id}: Movimiento bloqueado hacia {target_pos} (pared/puerta cerrada).")
+            return False
+
         if self.pa >= move_cost:
             if self.printable: print(f"   🦶 Agente {self.id}: Moviéndose a {target_pos} (Costo: {move_cost}).")
             self.model.grid.move_agent(self, target_pos)
