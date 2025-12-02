@@ -13,9 +13,9 @@ WIDTH = 8
 HEIGHT = 6
 AGENTS = 6
 PA = 4
-BATCH_SIZE = 1000
-MAX_ATTEMPTS = 5
-FPS = 10
+BATCH_SIZE = 5000
+MAX_ATTEMPTS = 1
+FPS = 2
 
 def generate_gif(sim_data, filename, title_suffix=""):
     """ 

@@ -49,3 +49,9 @@ class AgenteRescuer(AgentBaseModel):
     def decision_extinguish_fire(self):
         # Solo apaga si Dijkstra le dijo que pasara por ahí (es decir, está bloqueando su ruta óptima)
         return True
+    
+    def decision_open_door(self):
+        return True
+    
+    def decision_chop_wall(self):
+        return False

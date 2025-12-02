@@ -76,8 +76,8 @@ class Simulation:
         Fórmula: (Salvados * 100) - (Muertos * 50) - (Daño * 10) - (Pasos * 0.5)
         """
         # Pesos (puedes ajustarlos según prefieras)
-        W_SAVED = 100      # Gran premio por salvar
-        W_LOST = -50       # Gran castigo por perder vidas
+        W_SAVED = 100      # Premio por salvar
+        W_LOST = -50       # Castigo por perder vidas
         W_DAMAGE = -10     # Castigo moderado por destruir el edificio
         W_STEPS = -0.5     # Pequeño castigo por tardar mucho (eficiencia)
 

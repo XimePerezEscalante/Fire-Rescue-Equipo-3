@@ -30,13 +30,9 @@ def _worker_simulation(args):
         "seed": seed,
         "score": final_score,
         "end_reason": sim.end_reason,
-        
-        # --- LLAVES CRÍTICAS ---
         "steps": sim.model.steps,
         "damage": sim.model.damage_taken,
         "saved": sim.model.victims_saved,
-        # -----------------------
-        
         "replay_data": full_replay_data
     }
 

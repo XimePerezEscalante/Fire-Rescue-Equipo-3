@@ -15,6 +15,7 @@ class AgentBaseModel(Agent):
         # Estadísticas simples
         self.steps_taken = 0
 
+    
     def step(self):
         self.pa = self.totalPA 
 

@@ -1,10 +1,12 @@
+import random
+import numpy as np
 from mesa import Model
 from mesa.space import MultiGrid
 from Simulation.AgentBaseModel import AgentBaseModel
 from Simulation.AgentFireFighter import AgentFireFighter
 from Simulation.AgentRescuer import AgenteRescuer
-from Simulation.AuxFunctions import readMap
-import random
+from Simulation.AuxFunctions import readMap, get_grid
+from mesa.datacollection import DataCollector
 
 class ExplorerModel(Model):
     def __init__(self, width, height, agents, pa, strategy="random", printable=False, on_step_callback=None):
@@ -101,7 +103,7 @@ class ExplorerModel(Model):
                         valid_spots.append(pos)
             if valid_spots:
                 pos = self.random.choice(valid_spots)
-                ptype = 'v' if random.random() > 0.4 else 'f'
+                ptype = 'v' if random.random() > 0.5 else 'f'
                 self.pois.append([pos[1], pos[0], ptype, False]) 
             else: break
 
@@ -124,7 +126,6 @@ class ExplorerModel(Model):
 
     def check_poi_on_fire(self, x, y):
         """
-        [CORREGIDO]
         Verifica si hay un POI en la celda (x, y) que acaba de prenderse fuego.
         No importa si está revelado u oculto, el fuego lo afecta igual.
         """
