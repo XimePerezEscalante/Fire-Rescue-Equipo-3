@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9061829080302759613}
   - component: {fileID: 6496128829353941623}
   - component: {fileID: 4945413222164257406}
+  - component: {fileID: -954752455892435764}
   m_Layer: 0
   m_Name: Puerta
   m_TagString: Untagged
@@ -112,3 +113,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-954752455892435764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4694473405770988450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7e83c7c5a65841058c120aade4cbb18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Door
+  doorPrefab: {fileID: 0}
+  isOpen: 0
+  position: 0
