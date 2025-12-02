@@ -10,6 +10,7 @@ public class BoardManager : MonoBehaviour
     public GameObject unknownPointOfInterestPrefab;
     public GameObject[] knownPOIPrefabs;
     public GameObject firePrefab;
+    public GameObject[] agents;
     public static float XWall{get; private set;}
     public static float YWall{get; private set;}
     public static float ZWall{get; private set;}
@@ -91,8 +92,9 @@ public class BoardManager : MonoBehaviour
         AddDoorsToWallMatrix();
         PlaceWalls();
         InstantiateFire();
-        InstantiatePOI();
+        InstantiateUnknownPOI();
         TurnPOIAround(5, 1);
+        MoveAgent(6, 1);
         // Explosion(1, 1);
         //UpdateValues("1100", 1, '2');
     }
@@ -184,7 +186,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private void InstantiatePOI()
+    private void InstantiateUnknownPOI()
     {
         float XCoord = 0f;
         float ZCoord = 0f;
@@ -217,6 +219,26 @@ public class BoardManager : MonoBehaviour
 
     }
 
+    private void InstantiateKnownPOI(float XCoord, float ZCoord)
+    {
+        Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
+        Quaternion spawnRotation = Quaternion.identity;
+        GameObject newPOI = Instantiate(knownPOIPrefabs[0], spawnPosition, spawnRotation);
+    }
+
+    private void MoveAgent(int r, int c)
+    {
+        float XCoord = CorrectXCoordinates(c);
+        float ZCoord = CorrectZCoordinates(r);
+        // Crear vector de posicion de objeto
+        Vector3 spawnPosition = new Vector3(XCoord, 3.29f, ZCoord);
+        // Crear vector de rotacion de objeto
+        Quaternion spawnRotation = Quaternion.identity;
+        // Mover agente
+        agents[0].GetComponent<Agent>().Move(r, c, spawnPosition, spawnRotation);
+
+    }
+
     private void TurnPOIAround(int r, int c)
     {
         GameObject[] allPOIS;
@@ -232,16 +254,14 @@ public class BoardManager : MonoBehaviour
                 // Funcion de descubrir POI
                 onePOI.GetComponent<UnknownPOI>().DiscoverPOI();
                 // Si el POI no es falsa alarma, se crea uno con un prefab de KnownPOIs
-                if (createPOI)
+                if (!createPOI)
                 {
                     // Coordenada en X actual
                     float XCoord = CorrectXCoordinates(c);
                     // Coordenada en Z actual
                     float ZCoord = CorrectZCoordinates(r);
                     // Crear instancia de POI descubierto
-                    Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
-                    Quaternion spawnRotation = Quaternion.identity;
-                    GameObject newPOI = Instantiate(knownPOIPrefabs[0], spawnPosition, spawnRotation);
+                    InstantiateKnownPOI(XCoord, ZCoord);
                 }
             }
         }
@@ -272,7 +292,7 @@ public class BoardManager : MonoBehaviour
             }
         });
 
-        Debug.Log(result);
+        //Debug.Log(result);
         return result;
     }
 
