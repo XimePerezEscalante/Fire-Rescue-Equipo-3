@@ -8,7 +8,7 @@ public class BoardManager : MonoBehaviour
     public GameObject wallDoorwayPrefab;
     public GameObject doorPrefab;
     public GameObject unknownPointOfInterestPrefab;
-    public GameObject[] knownPointsOfInterestPrefab;
+    public GameObject[] knownPOIPrefabs;
     public GameObject firePrefab;
     public static float XWall{get; private set;}
     public static float YWall{get; private set;}
@@ -69,11 +69,11 @@ public class BoardManager : MonoBehaviour
         {6, 6}
     };
 
-    private static int[,] POI = new int[3,2]
+    private static int[,] POI = new int[3,3]
     {
-        {2, 4},
-        {5, 1},
-        {5, 8}
+        {2, 4, 1},
+        {5, 1, 0},
+        {5, 8, 1}
     };
 
     private void Awake()
@@ -91,8 +91,10 @@ public class BoardManager : MonoBehaviour
         AddDoorsToWallMatrix();
         PlaceWalls();
         InstantiateFire();
+        InstantiatePOI();
+        TurnPOIAround(5, 1);
         // Explosion(1, 1);
-        //updateValues("1100", 1, '2');
+        //UpdateValues("1100", 1, '2');
     }
 
     // Update is called once per frame
@@ -187,16 +189,61 @@ public class BoardManager : MonoBehaviour
         float XCoord = 0f;
         float ZCoord = 0f;
 
-        for (int i = 0;i < (POI.Length / 2);i++)
+        
+        for (int i = 0;i < (POI.Length / 3);i++)
         {
-            // Restar 1 al valor para ajustarse a las coordenadas correctas
-            XCoord = (POI[i, 1] - 1) * 6.4f;
-            // Restarle a 6 el valor para ajustarse a las coordenadas del tablero
-            ZCoord = (6 - POI[i, 0]) * 6.4f;
+            
+            XCoord = CorrectXCoordinates(POI[i, 1]);
+            
+            ZCoord = CorrectZCoordinates(POI[i, 0]);
             // Crear valores para instanciar el objeto
             Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
             Quaternion spawnRotation = Quaternion.identity;
-            Instantiate(unknownPointOfInterestPrefab, spawnPosition, spawnRotation);
+            // Crear arreglo con instancias de POIs, e irlos agregando
+            GameObject newPOI = Instantiate(unknownPointOfInterestPrefab, spawnPosition, spawnRotation);
+            // Establecer celda donde se encuentra
+            newPOI.GetComponent<UnknownPOI>().SetLocation(POI[i, 0], POI[i, 1]); 
+            // Es falsa alarma
+            if (POI[i,2] == 0)
+            {
+                newPOI.GetComponent<UnknownPOI>().SetFalseAlarm(true);
+            }
+            // Es comida
+            else if (POI[i,2] == 1)
+            {
+                newPOI.GetComponent<UnknownPOI>().SetFalseAlarm(false);
+            }
+        }
+
+    }
+
+    private void TurnPOIAround(int r, int c)
+    {
+        GameObject[] allPOIS;
+        allPOIS = GameObject.FindGameObjectsWithTag("UnknownPOI");
+
+        bool createPOI;
+        
+        foreach (GameObject onePOI in allPOIS) {
+            // Se encontro el POI
+            if (onePOI.GetComponent<UnknownPOI>().row == r && onePOI.GetComponent<UnknownPOI>().column == c){
+                // Checar si es falsa alarma
+                createPOI = onePOI.GetComponent<UnknownPOI>().isFalseAlarm;
+                // Funcion de descubrir POI
+                onePOI.GetComponent<UnknownPOI>().DiscoverPOI();
+                // Si el POI no es falsa alarma, se crea uno con un prefab de KnownPOIs
+                if (createPOI)
+                {
+                    // Coordenada en X actual
+                    float XCoord = CorrectXCoordinates(c);
+                    // Coordenada en Z actual
+                    float ZCoord = CorrectZCoordinates(r);
+                    // Crear instancia de POI descubierto
+                    Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
+                    Quaternion spawnRotation = Quaternion.identity;
+                    GameObject newPOI = Instantiate(knownPOIPrefabs[0], spawnPosition, spawnRotation);
+                }
+            }
         }
     }
 
@@ -205,7 +252,7 @@ public class BoardManager : MonoBehaviour
         audioSystem.PlaySFX(audioSystem.explosion);
     }
 
-    private string updateValues(string currentValue, int place, char newValue)
+    private string UpdateValues(string currentValue, int place, char newValue)
     {
         // constructing a string from a char array, prefix it with some additional characters
         char[] chars = {'a', 'b', 'c', 'd', '\0'};
@@ -229,6 +276,18 @@ public class BoardManager : MonoBehaviour
         return result;
     }
 
+    private float CorrectXCoordinates(int col)
+    {
+        // Restar 1 al valor para ajustarse a las coordenadas correctas
+        return (col - 1) * 6.4f;
+    }
+
+    private float CorrectZCoordinates(int row)
+    {
+        // Restarle a 6 el valor para ajustarse a las coordenadas del tablero
+        return (6 - row) * 6.4f;
+    }
+
     private void AddDoorsToWallMatrix()
     {
         int currentI;
@@ -248,14 +307,14 @@ public class BoardManager : MonoBehaviour
                 {
                     currentValue = Walls[currentI - 1, currentJ, 0];
                     //currentValue[1] = '2';
-                    Walls[currentI - 1, currentJ, 0] = updateValues(currentValue, 1, '2');;
+                    Walls[currentI - 1, currentJ, 0] = UpdateValues(currentValue, 1, '2');;
                 }
                 // Hacia la celda de la izquierda
                 else if (Doors[i,3] > currentJ)
                 {
                     currentValue = Walls[currentI - 1, currentJ - 2, 0];
                     //currentValue[1] = '2';
-                    Walls[currentI - 1, currentJ - 2, 0] = updateValues(currentValue, 1, '2');;
+                    Walls[currentI - 1, currentJ - 2, 0] = UpdateValues(currentValue, 1, '2');;
                 }
             }
             // La puerta conduce a la fila de arriba
@@ -263,15 +322,15 @@ public class BoardManager : MonoBehaviour
             {
                 currentValue = Walls[currentI - 1, currentJ - 1, 0];
                 //currentValue[0] = '2';
-                Walls[currentI - 1, currentJ - 1, 0] = updateValues(currentValue, 0, '2');;
+                Walls[currentI - 1, currentJ - 1, 0] = UpdateValues(currentValue, 0, '2');;
             }
             // La puerta conduce a la fila de abajo
             else if (Doors[i,2] > currentI)
             {
                 currentValue = Walls[currentI, currentJ - 1, 0];
                 //currentValue[0] = '2';
-                Debug.Log("CURRENT VALUE " + currentValue + "CURRENT I = " + currentI);
-                Walls[currentI, currentJ - 1, 0] = updateValues(currentValue, 0, '2');;
+                //Debug.Log("CURRENT VALUE " + currentValue + "CURRENT I = " + currentI);
+                Walls[currentI, currentJ - 1, 0] = UpdateValues(currentValue, 0, '2');;
             }
             
         }
@@ -290,13 +349,13 @@ public class BoardManager : MonoBehaviour
             if (EntryPoints[i,1] == 1)
             {
                 // Entry Point va en la pared izquierda
-                Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 1, '3');
+                Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = UpdateValues(currentValue, 1, '3');
             }
             // Columna 8
             else if (EntryPoints[i,1] == 8)
             {
                 // Entry Point va en la pared derecha
-                Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 3, '3');
+                Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = UpdateValues(currentValue, 3, '3');
             }
             else
             {
@@ -304,13 +363,13 @@ public class BoardManager : MonoBehaviour
                 if (EntryPoints[i,0] == 1)
                 {
                     // Entry Point va en la pared de arriba
-                    Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 0, '3');
+                    Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = UpdateValues(currentValue, 0, '3');
                 }
                 // Fila 6
                 else if (EntryPoints[i,0] == 6)
                 {
                     // Entry Point va en la pared de abajo
-                    Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = updateValues(currentValue, 2, '3');
+                    Walls[EntryPoints[i,0] - 1, EntryPoints[i,1] - 1, 0] = UpdateValues(currentValue, 2, '3');
                 }
             }
         }
@@ -326,7 +385,7 @@ public class BoardManager : MonoBehaviour
                 {
                     if (j == 0)
                     {
-                        Debug.Log(Walls[i,j,0]);
+                        //Debug.Log(Walls[i,j,0]);
                         // Checar pared de arriba
                         // Hay pared
                         if (CheckUp(Walls[i,j,0]) == 1)
@@ -417,7 +476,7 @@ public class BoardManager : MonoBehaviour
                     }
                     else
                     {
-                        Debug.Log(Walls[i,j,0]);
+                        //Debug.Log(Walls[i,j,0]);
                         // Checar pared de arriba
                         // Hay pared
                         if (CheckUp(Walls[i,j,0]) == 1)
@@ -551,7 +610,7 @@ public class BoardManager : MonoBehaviour
                         // Hay pared
                         if (CheckUp(Walls[i,j,0]) == 1)
                         {
-                            Debug.Log("i: " + i);
+                            //Debug.Log("i: " + i);
                             InstantiateWall(1, 0, 0.5f, 6.4f * (6 - i) - 3, 0);
                         }
                         // Hay puerta

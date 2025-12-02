@@ -13,6 +13,7 @@ public class AudioSystem : MonoBehaviour
     public AudioClip death;
     public AudioClip breakWall;
     public AudioClip stunned;
+    public AudioClip falseAlarmPOI;
 
     private void Start()
     {

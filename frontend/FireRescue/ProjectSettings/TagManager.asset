@@ -5,6 +5,11 @@ TagManager:
   serializedVersion: 3
   tags:
   - Audio
+  - Fire
+  - Agent
+  - UnknownPOI
+  - KnownPOI
+  - POI
   layers:
   - Default
   - TransparentFX
