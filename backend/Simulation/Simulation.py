@@ -1,105 +1,92 @@
-from ExplorerModel import ExplorerModel
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib.patches import Patch
-from matplotlib.colors import ListedColormap
-import seaborn as sns
+# Simulation/Simulation.py
+import random
+import json
+from Simulation.ExplorerModel import ExplorerModel
 
-# Configuración inicial
-sns.set_theme()
-GRID_WIDTH = 8
-GRID_HEIGHT = 6
-AGENTS = 1
-MAX_ENERGY = 100
-
-# Inicializar modelo
-model = ExplorerModel(GRID_WIDTH, GRID_HEIGHT, AGENTS, MAX_ENERGY)
-
-# Correr simulación
-while not model.is_all_clean():
-    model.step()
-
-# Obtener datos para animación
-all_grids = model.datacollector.get_model_vars_dataframe()
-
-# --- CONFIGURACIÓN VISUAL ---
-fig, axs = plt.subplots(figsize=(7, 7))
-axs.set_xticks([])
-axs.set_yticks([])
-
-# Definir mapa de colores según la lógica de AuxFunctions.get_grid:
-# 0: Vacío (Blanco)
-# 1: Base (Azul)
-# 2: Fuego (Rojo)
-# 3: POI (Verde)
-# 4: Agente (Negro)
-colors = ['#f0f0f0', 'blue', 'red', '#2ecc71', 'black'] # Usé un gris muy claro para vacío para ver mejor las paredes cyan
-cmap = ListedColormap(colors)
-
-# Dibujar estado inicial
-# Nota: vmin=0, vmax=4 asegura que los números se mapeen fijo a los colores
-patch = axs.imshow(all_grids.iloc[0]["Grid"], cmap=cmap, vmin=0, vmax=4)
-
-# --- DIBUJAR PAREDES ---
-# Usamos la matriz de paredes del modelo
-walls = model.walls
-for y in range(len(walls)):
-    for x in range(len(walls[y])):
-        w = walls[y][x]
-        # w es "Arriba Izq Abajo Der"
+class Simulation:
+    def __init__(self, width, height, agents, pa, seed=None, strategy="random"):
+        self.seed = seed if seed is not None else random.randint(0, 100000)
+        random.seed(self.seed)
         
-        # Coordenadas visuales: x es columna, y es fila.
-        # Arriba (y-0.5), Abajo (y+0.5), Izq (x-0.5), Der (x+0.5)
-        
-        if w[0] == '1': # Arriba
-            axs.plot([x-0.5, x+0.5], [y-0.5, y-0.5], color='cyan', linewidth=2)
-        if w[1] == '1': # Izquierda
-            axs.plot([x-0.5, x-0.5], [y-0.5, y+0.5], color='cyan', linewidth=2)
-        if w[2] == '1': # Abajo
-            axs.plot([x-0.5, x+0.5], [y+0.5, y+0.5], color='cyan', linewidth=2)
-        if w[3] == '1': # Derecha
-            axs.plot([x+0.5, x+0.5], [y-0.5, y+0.5], color='cyan', linewidth=2)
+        self.model = ExplorerModel(width, height, agents, pa, strategy=strategy, on_step_callback=self.record_frame, printable=False)
+        self.simulation_data = {
+            "metadata": {
+                "width": width, "height": height, "agents": agents, "seed": self.seed
+            },
+            "frames": []
+        }
+        # Variable para saber por qué terminó
+        self.end_reason = "NOT_FINISHED" 
 
-if hasattr(model, 'doors'):
-    for d in model.doors:
-        # d es ['r1', 'c1', 'r2', 'c2'] (strings)
-        r1, c1, r2, c2 = int(d[0]), int(d[1]), int(d[2]), int(d[3])
+    def run(self):
+        while self.model.running:
+            self.record_frame()
+            self.model.step()
+            self.check_game_status()
         
-        # Convertir a coordenadas de plot (x=col, y=row)
-        # La pared está ENTRE (c1, r1) y (c2, r2)
-        
-        # Calculamos el punto medio para saber dónde dibujar la línea
-        x_mid = (c1 + c2) / 2.0
-        y_mid = (r1 + r2) / 2.0
-        
-        # Si la diferencia es en X (Puerta vertical)
-        if c1 != c2:
-            # Dibujamos línea vertical en x_mid, desde y-0.5 a y+0.5
-            # Como r1 y r2 son iguales, usamos r1
-            axs.plot([x_mid, x_mid], [r1-0.5, r1+0.5], color='gray', linewidth=4)
+        self.record_frame()
+
+    def check_game_status(self):
+        """ Revisa el estado del modelo para actualizar end_reason """
+        if not self.model.running:
+            if self.model.victims_saved >= 7:
+                self.end_reason = "WIN"
+            elif self.model.victims_lost >= 4:
+                self.end_reason = "LOSS_VICTIMS"
+            elif self.model.damage_taken >= 24:
+                self.end_reason = "LOSS_COLLAPSE"
+
+    def record_frame(self):
+        frame = {
+            "step": self.model.steps,
+            "agents": [{"id": a.id, "x": a.pos[0], "y": a.pos[1], "carrying": a.carrying_victim, "role": getattr(a, "role", "Base")} for a in self.model.agents_list],
+            "fires": [{"y": f[0], "x": f[1], "state": f[2]} for f in self.model.fires],
+            "pois": [{"y": p[0], "x": p[1], "type": p[2], "revealed": (p[3] if len(p)>3 else False)} for p in self.model.pois],
+            "walls": [row[:] for row in self.model.walls],
+            "doors": [{"p1": d[0], "p2": d[1], "status": d[2]} for d in self.model.doors],
+            "stats": {"saved": self.model.victims_saved, "lost": self.model.victims_lost, "damage": self.model.damage_taken}
+        }
+        self.simulation_data["frames"].append(frame)
+
+    def evaluate(self):
+        """ Puntaje para rankear la simulación """
+        score = 0
+        # Base fuerte según resultado
+        if self.end_reason == "WIN": score += 10000
+        elif self.end_reason == "LOSS_VICTIMS": score -= 5000
+        elif self.end_reason == "LOSS_COLLAPSE": score -= 5000
+        elif self.end_reason == "TIMEOUT": score -= 1000
+        score += (self.model.victims_saved * 500)  # Salvar es bueno
+        score -= (self.model.victims_lost * 500)   # Perder víctimas es muy malo
+        score -= (self.model.damage_taken * 10)    # El daño baja puntos
+        score -= (self.model.steps * 5)            # Mientras más rápido, mejor
+
+        return score
+    
+    def calculate_final_score(self):
+        """
+        Calcula un puntaje numérico para determinar la calidad de la partida.
+        """
+        # Pesos
+        W_SAVED = 100      # Premio por salvar
+        W_LOST = -50       # Castigo por perder vidas
+        W_DAMAGE = -10     # Castigo moderado por destruir el edificio
+        W_STEPS = -0.5     # Pequeño castigo por tardar mucho (eficiencia)
+
+        score = (self.model.victims_saved * W_SAVED) + \
+                (self.model.victims_lost * W_LOST) + \
+                (self.model.damage_taken * W_DAMAGE) + \
+                (self.model.steps * W_STEPS)
+                
+        if self.end_reason == "WIN":
+            score += 200
             
-        # Si la diferencia es en Y (Puerta horizontal)
-        elif r1 != r2:
-            # Dibujamos línea horizontal en y_mid, desde x-0.5 a x+0.5
-            axs.plot([c1-0.5, c1+0.5], [y_mid, y_mid], color='gray', linewidth=4)
+        return score
 
-# Actualizar Leyenda para incluir la Puerta
-
-# Leyenda
-legend_elements = [
-    Patch(facecolor='blue', edgecolor='black', label='Base'),
-    Patch(facecolor='red', edgecolor='black', label='Fuego'),
-    Patch(facecolor='#2ecc71', edgecolor='black', label='POI'),
-    Patch(facecolor='black', edgecolor='black', label='Agente'),
-    Patch(facecolor='gray', edgecolor='gray', label='Puerta')
-]
-axs.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.3, 1))
-
-def animate(i):
-    patch.set_data(all_grids.iloc[i]["Grid"])
-    axs.set_title(f"Paso: {i}")
-
-# Crear animación
-anim = animation.FuncAnimation(fig, animate, frames=len(all_grids))
-# Guardar o mostrar
-anim.save("bomberos_fixed.gif", writer='pillow', fps=5)
+    def get_results_json(self):
+        return {
+            "score": self.evaluate(),
+            "end_reason": self.end_reason,
+            "steps_total": self.model.steps,
+            "data": self.simulation_data
+        }
