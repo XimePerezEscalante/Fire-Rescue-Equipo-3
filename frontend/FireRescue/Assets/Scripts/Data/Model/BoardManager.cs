@@ -94,7 +94,7 @@ public class BoardManager : MonoBehaviour
         InstantiateFire();
         InstantiateUnknownPOI();
         TurnPOIAround(2, 4);
-        MoveAgent(6, 1);
+        //MoveAgent(1, 6, 1);
         // Explosion(1, 1);
         //UpdateValues("1100", 1, '2');
     }
@@ -228,7 +228,7 @@ public class BoardManager : MonoBehaviour
         GameObject newPOI = Instantiate(knownPOIPrefabs[indexPOI], spawnPosition, spawnRotation);
     }
 
-    private void MoveAgent(int r, int c)
+    public void MoveAgent(int agentIndex, int r, int c)
     {
         float XCoord = CorrectXCoordinates(c);
         float ZCoord = CorrectZCoordinates(r);
@@ -237,7 +237,7 @@ public class BoardManager : MonoBehaviour
         // Crear vector de rotacion de objeto
         Quaternion spawnRotation = Quaternion.identity;
         // Mover agente
-        agents[0].GetComponent<Agent>().Move(r, c, spawnPosition, spawnRotation);
+        agents[agentIndex].GetComponent<Agent>().Move(r, c, spawnPosition, spawnRotation);
 
     }
 

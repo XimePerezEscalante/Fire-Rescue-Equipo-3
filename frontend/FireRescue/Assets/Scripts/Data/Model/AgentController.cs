@@ -6,6 +6,7 @@ using UnityEngine;
 public class AgentController : MonoBehaviour
 {
     [Header("Prefabs")]
+    public BoardManager BM;
     public GameObject agentPrefab;
     public GameObject firePrefab; 
     public GameObject victimPrefab; 
@@ -42,14 +43,16 @@ public class AgentController : MonoBehaviour
     // Crea los GameObjects iniciales
     void InitializeAgents(AgentData[] agentsData)
     {
+
         foreach (var data in agentsData)
         {
-            Vector3 pos = new Vector3(data.x, 0, data.y);
-            GameObject newAgent = Instantiate(agentPrefab, pos, Quaternion.identity);
-            
+            //Vector3 pos = new Vector3(data.x, 0, data.y);
+            //GameObject newAgent = Instantiate(agentPrefab, pos, Quaternion.identity);
+            // Llamar a la funcion de Move Agent BoardManager.MoveAgent(data.id, data.x, data.y)
+            BM.MoveAgent(data.id, data.x, data.y);
             // Asignar nombre y guardar en diccionario
-            newAgent.name = $"Agent_{data.id}";
-            agents[data.id] = newAgent;
+            BM.agents[data.id].name = $"Agent_{data.id}";
+            agents[data.id] = BM.agents[data.id];//newAgent;
         }
     }
 
@@ -88,14 +91,15 @@ public class AgentController : MonoBehaviour
         {
             if (agents.ContainsKey(agentData.id))
             {
-                targetPositions[agentData.id] = new Vector3(agentData.x, 0, agentData.y);
+                /*targetPositions[agentData.id] = new Vector3(agentData.x, 0, agentData.y);
                 // La posición inicial es donde está el objeto actualmente
-                startPositions[agentData.id] = agents[agentData.id].transform.position;
+                startPositions[agentData.id] = agents[agentData.id].transform.position;*/
+                BM.MoveAgent(agentData.id, agentData.x, agentData.y);
             }
         }
 
         // Bucle de animación suave
-        while (timer < timePerStep)
+        /*while (timer < timePerStep)
         {
             timer += Time.deltaTime;
             float t = timer / timePerStep;
@@ -127,7 +131,8 @@ public class AgentController : MonoBehaviour
                 }
             }
             yield return null; // Esperar al siguiente frame de Unity
-        }
+        }*/
+        yield return null;
     }
 
     // Actualiza objetos estáticos o que no se mueven suavemente (Fuego, POIs)
@@ -143,7 +148,7 @@ public class AgentController : MonoBehaviour
         activePois.Clear();
 
         // 2. Instanciar Fuegos
-        if (firePrefab != null && frame.fires != null)
+        /*if (firePrefab != null && frame.fires != null)
         {
             foreach (var fire in frame.fires)
             {
@@ -166,7 +171,7 @@ public class AgentController : MonoBehaviour
                 Vector3 pos = new Vector3(poi.x, 0, poi.y);
                 activePois.Add(Instantiate(victimPrefab, pos, Quaternion.identity));
             }
-        }
+        }*/
     }
 
     void CleanUpScene()

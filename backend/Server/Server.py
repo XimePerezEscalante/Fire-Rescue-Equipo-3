@@ -7,10 +7,10 @@ import json
 DEFAULT_CONFIG = {
     "grid_width": 8,
     "grid_height": 6,
-    "agents": 5,
-    "max_energy": 100,
-    "random_fires": None,
-    "random_pois": None
+    "agents": 6,
+    "max_energy": 4,
+    # "random_fires": None,
+    # "random_pois": None
 }
 
 class Server:
@@ -66,12 +66,14 @@ class Server:
     def run_single_simulation(self):
         # Extraemos configuración
         cfg = self.simulation_config
+        data = request.json or {}
+        strategy = data.get("strategy", "random")
+
         
         sim = Simulation(
             cfg["grid_width"], cfg["grid_height"], 
             cfg["agents"], cfg["max_energy"],
-            random_fires=cfg["random_fires"],
-            random_pois=cfg["random_pois"]
+            strategy=strategy
         )
         sim.run()
         
@@ -83,16 +85,14 @@ class Server:
         cfg = self.simulation_config
         # Si el cliente manda parámetros específicos para el batch, usarlos, si no, usar config
         data = request.json or {}
-        iterations = data.get("iterations", 50)
-        strategy = data.get("strategy", "random")
+        iterations = data.get("iterations", 10)
+        strategy = data.get("strategy", "intelligent")
 
         manager = SimulationManager()
-        results = manager.run_parallel_experiment(
+        results = manager.run_batch_experiment(
             cfg["grid_width"], cfg["grid_height"], 
             cfg["agents"], cfg["max_energy"],
             iterations=iterations,
-            strategy=strategy,
-            random_fires=cfg["random_fires"],
-            random_pois=cfg["random_pois"]
+            strategy_name = strategy
         )
         return jsonify(results)

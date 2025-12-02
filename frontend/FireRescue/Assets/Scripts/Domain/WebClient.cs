@@ -76,7 +76,7 @@ public class WebClient : MonoBehaviour
             else
             {
                 string jsonResult = www.downloadHandler.text;
-                // Debug.Log("Simulación recibida (JSON crudo): " + jsonResult);
+                Debug.Log("Simulación recibida (JSON crudo): " + jsonResult);
 
                 // Parseamos la respuesta completa
                 try 
