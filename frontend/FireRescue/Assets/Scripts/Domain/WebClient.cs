@@ -1,92 +1,102 @@
-﻿// WebClient.cs
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Text;
 
 public class WebClient : MonoBehaviour
 {
-    // Referencia al controlador que moverá los agentes
+    // Referencia a tu controlador principal en Unity
     public AgentController agentController;
+
+    private string baseUrl = "http://localhost:8585";
 
     void Start()
     {
-        // Enviamos un JSON dummy para iniciar el POST
-        StartCoroutine(SendData("{}"));
-        // StartCoroutine(GetData("{}"));
-        
+        // Paso 1: Obtener información del Mapa
+        StartCoroutine(GetMapData());
     }
 
-    IEnumerator SendData(string data)
+    // --- GET: Obtener Mapa ---
+    IEnumerator GetMapData()
     {
-        WWWForm form = new WWWForm();
-        form.AddField("bundle", "the data");
-        string url = "http://localhost:8585/simulation";
+        string url = baseUrl + "/getMap";
+        Debug.Log("Solicitando mapa a: " + url);
 
-        using (UnityWebRequest www = UnityWebRequest.Post(url, form))
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
         {
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(data);
-            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            www.downloadHandler = new DownloadHandlerBuffer();
-            www.SetRequestHeader("Content-Type", "application/json");
-
             yield return www.SendWebRequest();
 
-            if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+            if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError(www.error);
+                Debug.LogError("Error obteniendo mapa: " + www.error);
             }
             else
             {
-                string responseText = www.downloadHandler.text;
-                Debug.Log("Datos recibidos: " + responseText);
+                string jsonResult = www.downloadHandler.text;
+                Debug.Log("Mapa recibido: " + jsonResult);
+                
+                // Parseamos los datos básicos del mapa
+                MapDataResponse mapData = JsonUtility.FromJson<MapDataResponse>(jsonResult);
 
-                SimulationResult simData = JsonUtility.FromJson<SimulationResult>(responseText);
-
+                // Iniciamos la configuración del tablero en Unity (si tienes un método para ello)
                 if (agentController != null)
                 {
-                    agentController.StartSimulation(simData);
+                    // Ejemplo: agentController.InitializeMap(mapData.width, mapData.height);
                 }
-                else
-                {
-                    Debug.LogError("AgentController no asignado en el Inspector.");
-                }
+
+                // Paso 2: Una vez tenemos el mapa, pedimos la simulación
+                StartCoroutine(PostSimulation());
             }
         }
     }
 
-    IEnumerator GetData(string data)
+    // --- POST: Correr Simulación ---
+    IEnumerator PostSimulation()
     {
-        WWWForm form = new WWWForm();
-        form.AddField("bundle", "the data");
-        string url = "http://localhost:8585/getMap";
+        string url = baseUrl + "/simulation";
+        Debug.Log("Solicitando simulación a: " + url);
 
-        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        // Si quieres enviar configuración personalizada, hazlo aquí
+        // Por ahora enviamos un JSON vacío para usar la config por defecto del servidor
+        string jsonData = "{}"; 
+        
+        using (UnityWebRequest www = new UnityWebRequest(url, "POST"))
         {
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(data);
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
             www.uploadHandler = new UploadHandlerRaw(bodyRaw);
             www.downloadHandler = new DownloadHandlerBuffer();
             www.SetRequestHeader("Content-Type", "application/json");
 
             yield return www.SendWebRequest();
 
-            if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+            if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError(www.error);
+                Debug.LogError("Error en simulación: " + www.error);
             }
             else
             {
-                string responseText = www.downloadHandler.text;
-                Debug.Log("Datos recibidos: " + responseText);
+                string jsonResult = www.downloadHandler.text;
+                // Debug.Log("Simulación recibida (JSON crudo): " + jsonResult);
 
-                SimulationResult simData = JsonUtility.FromJson<SimulationResult>(responseText);
-
-                if (agentController != null)
+                // Parseamos la respuesta completa
+                try 
                 {
-                    agentController.StartSimulation(simData);
+                    SimulationResponse simResult = JsonUtility.FromJson<SimulationResponse>(jsonResult);
+
+                    if (agentController != null)
+                    {
+                        Debug.Log($"Simulación exitosa. Score: {simResult.score}, Pasos: {simResult.steps_total}");
+                        // Enviamos los datos listos para ser animados
+                        agentController.StartSimulation(simResult);
+                    }
+                    else
+                    {
+                        Debug.LogError("AgentController no asignado en el Inspector.");
+                    }
                 }
-                else
+                catch (System.Exception e)
                 {
-                    Debug.LogError("AgentController no asignado en el Inspector.");
+                    Debug.LogError("Error parseando JSON: " + e.Message);
                 }
             }
         }

@@ -53,7 +53,6 @@ class Server:
     def get_map_data(self):
         try:
             map_data = readMap()
-            # Fusionamos dimensiones + datos del mapa
             response = {
                 "width": self.simulation_config["grid_width"],
                 "height": self.simulation_config["grid_height"]
