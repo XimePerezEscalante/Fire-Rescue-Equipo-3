@@ -75,6 +75,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5f0651771e8424b0397a38cdf6951f95, type: 3}
       insertIndex: -1
       addedObject: {fileID: -1425584588483044931}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5f0651771e8424b0397a38cdf6951f95, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5916550065689138644}
   m_SourcePrefab: {fileID: 100100000, guid: 5f0651771e8424b0397a38cdf6951f95, type: 3}
 --- !u!1 &6239472011923364381 stripped
 GameObject:
@@ -97,3 +100,19 @@ MonoBehaviour:
   row: 0
   column: 0
   isCarryingPOI: 0
+--- !u!114 &5916550065689138644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6239472011923364381}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fb4958a0717f43fbbfdc16f1b365a7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AgentController
+  agentPrefab: {fileID: 6239472011923364381}
+  firePrefab: {fileID: 0}
+  victimPrefab: {fileID: 0}
+  timePerStep: 0.5
