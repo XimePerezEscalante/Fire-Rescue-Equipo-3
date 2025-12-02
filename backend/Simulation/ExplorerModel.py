@@ -23,6 +23,7 @@ class ExplorerModel(Model):
         self.pois = mapData['pois'] 
         self.entryPoints = mapData['entryPoints']
         
+        self.agents_list = []
         self.replenish_pois()
 
         self.steps = 0
@@ -34,7 +35,6 @@ class ExplorerModel(Model):
         self.printable = printable
         self.strategy = strategy
 
-        self.agents_list = []
         
         if self.strategy == "intelligent":
             self._place_intelligent_agents(agents, pa)
@@ -65,48 +65,55 @@ class ExplorerModel(Model):
         if self.printable:
             print(f"👥 Desplegando {num_agents} agentes en parejas...")
         
-        pair_count = 0
         for i in range(num_agents):
-            ambulance_idx = (pair_count // 2) % len(outside_doors)
+            # Lógica corregida: 
+            # Calculamos a qué pareja pertenece el agente (0, 1, 2...)
+            pair_idx = i // 2 
+            
+            # Asignamos la puerta usando el índice de la pareja, rotando por las puertas disponibles
+            ambulance_idx = pair_idx % len(outside_doors)
+            
             pos = outside_doors[ambulance_idx]
+            
+            # El par (even) es Bombero, el impar (odd) es Rescatador
             if i % 2 == 0:
                 a = AgentFireFighter(self, pa, i, printable=self.printable)
                 role_icon = "🔥"
             else:
                 a = AgenteRescuer(self, pa, i, printable=self.printable)
                 role_icon = "🚑"
-                pair_count += 1
             
             self.grid.place_agent(a, pos)
             self.agents_list.append(a)
             
             if self.printable:
-                pair_num = (pair_count // 2) + 1
                 print(f"{role_icon} INTELLIGENT - Agente {i} ({a.role}) → "
-                    f"Ambulancia {ambulance_idx + 1} en {pos} [Pareja {pair_num}]")
+                      f"Ambulancia {ambulance_idx + 1} en {pos} [Pareja {pair_idx + 1}]")
 
     def notify_observer(self):
         if self.on_step_callback:
             self.on_step_callback()
 
     def step(self):
+        
         outside_doors = [(ep[1], ep[0]) for ep in self.entryPoints]
+        
         for agent in self.agents_list:
             if agent.carrying_victim and agent.pos in outside_doors:
                 agent.carrying_victim = False
                 self.victims_saved += 1
                 if self.printable:
                     print(f"¡Víctima salvada por Agente {agent.id} en {agent.pos}!")
-        
-        if not self.running: return
-
-        for agent in self.agents_list:
             if not self.running: break
             agent.step()
-            self.advance_fire()
-            self.replenish_pois()
-            self.notify_observer()
+            self.notify_observer() 
             self.check_game_over()
+
+        if not self.running: return
+        self.advance_fire()
+        self.replenish_pois()
+        self.notify_observer()
+        self.check_game_over()
         
         self.steps += 1
 
@@ -129,18 +136,33 @@ class ExplorerModel(Model):
 
     # --- POIS ---
     def replenish_pois(self):
-        while len(self.pois) < 3:
+        # 1. Contamos los POIs físicos en el mapa
+        pois_on_map = len(self.pois)
+        
+        # 2. Contamos las víctimas que los agentes llevan en brazos
+        # (Asumiendo que tus agentes tienen el atributo boolean 'carrying_victim')
+        victims_being_carried = sum(1 for a in self.agents_list if getattr(a, 'carrying_victim', False))
+
+        # El total de "situaciones activas" es la suma de ambos
+        total_active = pois_on_map + victims_being_carried
+
+        # Solo reponemos si la suma total es menor a 3
+        while total_active < 3:
             valid_spots = []
             for x in range(self.grid.width):
                 for y in range(self.grid.height):
                     pos = (x, y)
+                    # Solo colocar si no hay fuego y no hay otro POI
                     if not self.is_fire(pos) and not self.is_poi(pos):
                         valid_spots.append(pos)
+            
             if valid_spots:
                 pos = self.random.choice(valid_spots)
-                ptype = 'v' if random.random() > 0.5 else 'f'
+                ptype = 'v' if random.random() > 0.5 else 'f' # 50/50 Victima o Falsa Alarma
                 self.pois.append([pos[1], pos[0], ptype, False]) 
-            else: break
+                total_active += 1 # Importante: aumentamos el contador temporal para el loop
+            else: 
+                break
 
     def is_poi(self, pos):
         x, y = pos
@@ -148,11 +170,33 @@ class ExplorerModel(Model):
 
     def reveal_poi(self, pos):
         x, y = pos
+        target_poi = None
+        
+        # Buscamos el POI específico
         for p in self.pois:
             if p[0] == y and p[1] == x:
-                if len(p) == 3: p.append(True)
-                else: p[3] = True
-                return 'Victim' if p[2] in ['v','Victim'] else 'FalseAlarm'
+                target_poi = p
+                break
+        
+        if target_poi:
+            # Marcamos como revelado (manejo seguro de índices)
+            if len(target_poi) == 3: target_poi.append(True)
+            else: target_poi[3] = True
+            
+            # Determinamos tipo
+            p_type = target_poi[2]
+            result = 'Victim' if p_type in ['v', 'Victim'] else 'FalseAlarm'
+
+            # --- REGLA: Si es Falsa Alarma, se elimina YA ---
+            if result == 'FalseAlarm':
+                self.remove_poi(pos)
+                if self.printable:
+                    print(f"🔍 Falsa alarma en {pos} eliminada.")
+            # --- REGLA: Si es Víctima, se queda en el mapa ---
+            # (El replenish_pois contará este POI y no generará uno nuevo)
+            
+            return result
+            
         return None
 
     def remove_poi(self, pos):

@@ -29,12 +29,8 @@ class AgentBaseModel(Agent):
             neighbors = self.get_valid_neighbors()
             if not neighbors:
                 break
-
             target_pos = self.decision_choose_movement(neighbors)
-            
-            # Predecimos costo
             cost = self.predict_action_cost(self.pos, target_pos)
-            
             if self.pa < cost:
                 if self.printable:
                     print(f"   🛑 Agente {self.id}: Guarda {self.pa} PA (Requiere {cost}).")
@@ -45,11 +41,8 @@ class AgentBaseModel(Agent):
             if action_taken:
                 self.model.notify_observer()
             else:
-                # Si action_taken es False, significa que intentó algo pero falló (ej. no quiso romper pared)
-                # Rompemos el bucle para evitar bucles infinitos intentando la misma acción fallida
                 break
         if self.model.get_cell_status(self.pos) == 'Fire':
-            # Enviar a ambulancia (knocked down)
             self.model.send_to_ambulance(self)
     
     def predict_action_cost(self, curr_pos, target_pos):
