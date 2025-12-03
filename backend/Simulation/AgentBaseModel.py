@@ -20,6 +20,7 @@ class AgentBaseModel(Agent):
         
         # Estadísticas simples
         self.steps_taken = 0
+        self.movement_count = 0
     
     def step(self):
         # Regla: Recargar PA (maximo pa del turno + guardados)
@@ -188,6 +189,7 @@ class AgentBaseModel(Agent):
             self.model.grid.move_agent(self, target_pos)
             self.pa -= move_cost
             self.steps_taken += 1
+            self.movement_count += 1
             
             # --- SALVAMENTO (REGLAS FAMILIARES) ---
             # En reglas familiares: llevar víctima FUERA del edificio

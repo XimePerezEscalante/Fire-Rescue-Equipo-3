@@ -8,7 +8,7 @@ import time
 
 from Simulation.SimulationManager import SimulationManager
 #Funciones para calcular y mostrar la tabla de estadísticas
-from Simulation.SimulationAnalysis import calculate_summary_stats, print_comparison_table
+from Simulation.SimulationAnalysis import calculate_summary_stats, print_comparison_table, plot_simulation_results
 
 # CONFIGURACIÓN
 WIDTH = 8
@@ -34,7 +34,7 @@ def generate_gif(sim_data, filename, title_suffix=""):
     
     # Crear figura
     fig, ax = plt.subplots(figsize=(10, 7.5))
-    cmap = ListedColormap(['#f0f0f0', '#ffcc00', '#ff4400'])  # Vacío, Humo (amarillo), Fuego (rojo)
+    cmap = ListedColormap(['#f0f0f0', '#ffcc00', "#ff2a00"])  # Vacío, Humo (amarillo), Fuego (rojo)
     
     def update(frame_idx):
         ax.clear()
@@ -225,7 +225,7 @@ def generate_gif(sim_data, filename, title_suffix=""):
 
         # Leyenda - SIN EMOJIS
         legend_text = "Rojo: Bombero | Cyan: Rescatista | Negro: Base\n"
-        legend_text += "Naranja: Fuego | Amarillo: Humo | Gris: Vacio\n"
+        legend_text += "Rojo: Fuego | Amarillo: Humo | Gris: Vacio\n"
         legend_text += "Verde: Ambulancia | V: Victima | ?: POI"
         ax.text(0.5, -0.05, legend_text, transform=ax.transAxes,
             ha='center', va='top', fontsize=8, 
@@ -366,23 +366,25 @@ if __name__ == "__main__":
         stats_random = calculate_summary_stats("random", results_random)
         stats_intelligent = calculate_summary_stats("intelligent", results_intelligent)
         print_comparison_table(stats_random, stats_intelligent)
+        print("\n📈 Generando gráficas comparativas (PNG)...")
+        plot_simulation_results(stats_random, stats_intelligent)
     else:
         print("\n❌ No se pudieron generar suficientes resultados para la tabla de comparación.")
     
     # --- 4. BÚSQUEDA ADICIONAL DE VICTORIAS (Mantenemos la lógica original) ---
-    tasks_random_win = find_winning_simulation(manager, "random", MAX_ATTEMPTS)
-    gif_tasks_queue.extend(tasks_random_win)
+    # tasks_random_win = find_winning_simulation(manager, "random", MAX_ATTEMPTS)
+    # gif_tasks_queue.extend(tasks_random_win)
     
-    tasks_intelligent_win = find_winning_simulation(manager, "intelligent", MAX_ATTEMPTS)
+    # tasks_intelligent_win = find_winning_simulation(manager, "intelligent", MAX_ATTEMPTS)
     
-    if tasks_intelligent_win:
-        gif_tasks_queue.extend(tasks_intelligent_win)
-        print(f"✅ Se añadirán {len(tasks_intelligent_win)} GIFs de victorias especiales")
-    else:
-        print("❌ No se encontraron victorias especiales para generar GIFs")
+    # if tasks_intelligent_win:
+    #     gif_tasks_queue.extend(tasks_intelligent_win)
+    #     print(f"✅ Se añadirán {len(tasks_intelligent_win)} GIFs de victorias especiales")
+    # else:
+    #     print("❌ No se encontraron victorias especiales para generar GIFs")
 
 
-    # --- 5. GENERAR TODOS LOS GIFs ---
+    # --- 5. GENERAR TODOS LOS GIFs e Imagenes ---
     print("\n" + "="*60)
     if gif_tasks_queue:
         print(f"🚀 GENERANDO {len(gif_tasks_queue)} GIFs EN PARALELO")

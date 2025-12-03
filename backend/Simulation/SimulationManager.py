@@ -18,6 +18,9 @@ def _worker_simulation(args):
     # Calcular Scores
     final_score = sim.calculate_final_score()
 
+    # Calcular la suma de pasos individuales de todos los agentes
+    total_movements = sum(agent.movement_count for agent in sim.model.agents_list)
+
     return {
         "seed": seed,
         "score": final_score,
@@ -25,7 +28,8 @@ def _worker_simulation(args):
         "steps": sim.model.steps,
         "damage": sim.model.damage_taken,
         "saved": sim.model.victims_saved,
-        "replay_data": full_replay_data
+        "replay_data": full_replay_data,
+        "total_distance": total_movements,
     }
 
 
