@@ -5,6 +5,7 @@ public class KnownPOI : MonoBehaviour
     AudioSystem audioSystem;
     public GameObject UnknownPOIPrefab;
     private Animator animator;
+    public int id;
     public int row;
     public int column;
     public bool isAlive;

@@ -32,6 +32,8 @@ public class Frame
     public FireData[] fires;
     public PoiData[] pois;
     public StatsData stats;
+    public string[] doors;
+    public string[] walls;
     // Nota: Walls y Doors podrían requerir estructuras complejas si son arrays anidados,
     // pero para la animación básica nos centramos en agentes y objetos dinámicos.
 }
@@ -64,6 +66,28 @@ public class PoiData
 }
 
 [System.Serializable]
+public class DoorData
+{
+    public int[] p1;
+    public int[] p2;
+    public string status;  
+}
+
+[System.Serializable]
+public class EntryPointData
+{
+    public int[] values;
+}
+
+[System.Serializable]
+public class WallData
+{
+    public string[] row;
+}
+
+
+
+[System.Serializable]
 public class StatsData
 {
     public int saved;
@@ -77,5 +101,10 @@ public class MapDataResponse
 {
     public int width;
     public int height;
+    public FireData[] fires;
+    public PoiData[] pois;
+    public WallData[] walls;
+    public DoorData[] doors;
+    public EntryPointData[] entryPoints;
     // Si necesitas los muros estáticos, añade aquí las estructuras
 }
