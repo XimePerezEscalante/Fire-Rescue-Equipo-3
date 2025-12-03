@@ -7,7 +7,6 @@ from multiprocessing import Pool, cpu_count
 import time
 
 from Simulation.SimulationManager import SimulationManager
-#Funciones para calcular y mostrar la tabla de estadísticas
 from Simulation.SimulationAnalysis import calculate_summary_stats, print_comparison_table, plot_simulation_results
 
 # CONFIGURACIÓN
@@ -346,7 +345,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    # --- 1. ANALIZAR ESTRATEGIA RANDOM (Lote Estadístico y Mejores GIFs) ---
+    # --- ANALIZAR ESTRATEGIA RANDOM (Lote Estadístico y Mejores GIFs) ---
     print("\n" + "="*60)
     print("🎲 ANALIZANDO ESTRATEGIA RANDOM (Base)")
     print("="*60)
@@ -354,7 +353,7 @@ if __name__ == "__main__":
     gif_tasks_queue.extend(tasks_random_batch)
 
 
-    # --- 2. ANALIZAR ESTRATEGIA INTELLIGENT (Lote Estadístico y Mejores GIFs) ---
+    # --- ANALIZAR ESTRATEGIA INTELLIGENT ---
     print("\n" + "="*60)
     print("🧠 ANALIZANDO ESTRATEGIA INTELLIGENT (Especializados)")
     print("="*60)
@@ -370,21 +369,8 @@ if __name__ == "__main__":
         plot_simulation_results(stats_random, stats_intelligent)
     else:
         print("\n❌ No se pudieron generar suficientes resultados para la tabla de comparación.")
-    
-    # --- 4. BÚSQUEDA ADICIONAL DE VICTORIAS (Mantenemos la lógica original) ---
-    # tasks_random_win = find_winning_simulation(manager, "random", MAX_ATTEMPTS)
-    # gif_tasks_queue.extend(tasks_random_win)
-    
-    # tasks_intelligent_win = find_winning_simulation(manager, "intelligent", MAX_ATTEMPTS)
-    
-    # if tasks_intelligent_win:
-    #     gif_tasks_queue.extend(tasks_intelligent_win)
-    #     print(f"✅ Se añadirán {len(tasks_intelligent_win)} GIFs de victorias especiales")
-    # else:
-    #     print("❌ No se encontraron victorias especiales para generar GIFs")
 
-
-    # --- 5. GENERAR TODOS LOS GIFs e Imagenes ---
+    # --- GENERAR TODOS LOS GIFs e Imagenes ---
     print("\n" + "="*60)
     if gif_tasks_queue:
         print(f"🚀 GENERANDO {len(gif_tasks_queue)} GIFs EN PARALELO")

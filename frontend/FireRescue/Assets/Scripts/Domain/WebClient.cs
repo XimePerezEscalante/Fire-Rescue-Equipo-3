@@ -17,7 +17,7 @@ public class WebClient : MonoBehaviour
     }
 
     // --- GET: Obtener Mapa ---
-    IEnumerator GetMapData()
+    async IEnumerator GetMapData()
     {
         string url = baseUrl + "/getMap";
         Debug.Log("Solicitando mapa a: " + url);
@@ -44,16 +44,17 @@ public class WebClient : MonoBehaviour
                     agentController.InitializeMap(mapData);
                 }
 
-                // Paso 2: Una vez tenemos el mapa, pedimos la simulación
-                StartCoroutine(PostSimulation());
+                // Una vez tenemos el mapa, pedimos la simulación en aleatorio
+                StartCoroutine(PostSimulationIntelligent());
+                // await StartCoroutine(PostSimulatioRandom());
             }
         }
     }
 
-    // --- POST: Correr Simulación ---
-    IEnumerator PostSimulation()
+    // --- POST: Correr Simulación en aleatorio ---
+    IEnumerator PostSimulationRandom()
     {
-        string url = baseUrl + "/simulation";
+        string url = baseUrl + "/simulation/random";
         Debug.Log("Solicitando simulación a: " + url);
 
         // Si quieres enviar configuración personalizada, hazlo aquí
@@ -78,7 +79,57 @@ public class WebClient : MonoBehaviour
                 string jsonResult = www.downloadHandler.text;
                 Debug.Log("Simulación recibida (JSON crudo): " + jsonResult);
 
-                // Parseamos la respuesta completa
+                try 
+                {
+                    SimulationResponse simResult = JsonUtility.FromJson<SimulationResponse>(jsonResult);
+
+                    if (agentController != null)
+                    {
+                        Debug.Log($"Simulación exitosa. Score: {simResult.score}, Pasos: {simResult.steps_total}");
+                        // Enviamos los datos listos para ser animados
+                        agentController.StartSimulation(simResult);
+                    }
+                    else
+                    {
+                        Debug.LogError("AgentController no asignado en el Inspector.");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError("Error parseando JSON: " + e.Message);
+                }
+            }
+        }
+    }
+    
+    // --- POST: Correr Simulación en aleatorio ---
+    IEnumerator PostSimulationIntelligent()
+    {
+        string url = baseUrl + "/simulation/intelligent";
+        Debug.Log("Solicitando simulación a: " + url);
+
+        // Si quieres enviar configuración personalizada, hazlo aquí
+        // Por ahora enviamos un JSON vacío para usar la config por defecto del servidor
+        string jsonData = "{}"; 
+        
+        using (UnityWebRequest www = new UnityWebRequest(url, "POST"))
+        {
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error en simulación: " + www.error);
+            }
+            else
+            {
+                string jsonResult = www.downloadHandler.text;
+                Debug.Log("Simulación recibida (JSON crudo): " + jsonResult);
+
                 try 
                 {
                     SimulationResponse simResult = JsonUtility.FromJson<SimulationResponse>(jsonResult);

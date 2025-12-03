@@ -34,16 +34,14 @@ def _worker_simulation(args):
 
 
 class SimulationManager:
-    def run_batch_experiment(self, width, height, agents, pa, iterations, strategy_name):
-        
-        print(f"🔄 Preparando {iterations} simulaciones en paralelo para: {strategy_name}...")
 
+    def run_batch_experiment(self, width, height, agents, pa, iterations, strategy_name):
+        print(f"🔄 Preparando {iterations} simulaciones en paralelo para: {strategy_name}...")
         # Preparar argumentos
         tasks_args = []
         for i in range(iterations):
             seed = random.randint(0, 1000000)
             tasks_args.append((width, height, agents, pa, seed, strategy_name))
-
         # Ejecucion paralela
         num_cores = multiprocessing.cpu_count()
         results = []
@@ -54,14 +52,12 @@ class SimulationManager:
                 for i, res in enumerate(raw_results):
                     res["id"] = i
                     results.append(res)
-
-        # 3. Calcular Estadísticas Globales
+        # Calcular Estadísticas Globales
         stats = {
             "wins": 0,
             "loss_victims": 0,
             "loss_collapse": 0
         }
-
         for res in results:
             if res["end_reason"] == "WIN":
                 stats["wins"] += 1
@@ -69,10 +65,8 @@ class SimulationManager:
                 stats["loss_victims"] += 1
             elif res["end_reason"] == "LOSS_COLLAPSE":
                 stats["loss_collapse"] += 1
-
-        # Ordenar por puntaje (Mejor primero)
+                
         sorted_results = sorted(results, key=lambda x: x["score"], reverse=True)
-
         return {
             "stats": stats,
             "sorted_runs": sorted_results

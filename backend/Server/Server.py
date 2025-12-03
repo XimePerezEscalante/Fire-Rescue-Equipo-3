@@ -8,9 +8,7 @@ DEFAULT_CONFIG = {
     "grid_width": 8,
     "grid_height": 6,
     "agents": 6,
-    "max_energy": 4,
-    # "random_fires": None,
-    # "random_pois": None
+    "max_energy": 4
 }
 
 class Server:
@@ -23,7 +21,11 @@ class Server:
     def configure_routes(self):
         self.app.add_url_rule('/init', view_func=self.init_params, methods=['POST'])
         self.app.add_url_rule('/getMap', view_func=self.get_map_data, methods=['GET'])
-        self.app.add_url_rule('/simulation', view_func=self.run_single_simulation, methods=['POST'])
+        
+        # Rutas actualizadas
+        self.app.add_url_rule('/simulation/random', view_func=self.run_single_simulation_random, methods=['POST'])
+        self.app.add_url_rule('/simulation/intelligent', view_func=self.run_single_simulation_intelligent, methods=['POST'])
+        
         self.app.add_url_rule('/run_batch', view_func=self.run_batch_experiment, methods=['POST'])
 
     def run(self):
@@ -38,10 +40,8 @@ class Server:
             return jsonify({"msg": "Default config loaded", "config": self.simulation_config})
         
         try:
-            # Actualizamos valores
             self.simulation_config["agents"] = int(data.get("agents", DEFAULT_CONFIG["agents"]))
             self.simulation_config["max_energy"] = int(data.get("maxEnergy", DEFAULT_CONFIG["max_energy"]))
-            # Si el cliente manda num_fires, activamos modo aleatorio
             self.simulation_config["random_fires"] = data.get("num_fires", None) 
             self.simulation_config["random_pois"] = data.get("num_pois", None)
             
@@ -62,28 +62,55 @@ class Server:
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    # --- ENDPOINT 3: Simulación Única (Visual) ---
-    def run_single_simulation(self):
-        # Extraemos configuración
-        cfg = self.simulation_config
-        data = request.json or {}
-        strategy = data.get("strategy", "random")
-
+    # --- HELPER: Lógica compartida para buscar la mejor simulación ---
+    def _run_best_simulation(self, strategy_name, iterations=1000):
+        """
+        Ejecuta un lote de simulaciones, elige la mejor y retorna 
+        su JSON de reproducción (replay_data).
+        """
+        manager = SimulationManager()
         
-        sim = Simulation(
-            cfg["grid_width"], cfg["grid_height"], 
-            cfg["agents"], cfg["max_energy"],
-            strategy=strategy
+        # Ejecutamos el lote en paralelo
+        experiment_data = manager.run_batch_experiment(
+            self.simulation_config['grid_width'], 
+            self.simulation_config['grid_height'], 
+            self.simulation_config['agents'], 
+            self.simulation_config["max_energy"], 
+            iterations=iterations,
+            strategy_name=strategy_name
         )
-        sim.run()
         
-        # Formatear para Unity
-        return jsonify(sim.get_results_json())
+        # Obtenemos la lista ordenada (el índice 0 es el mejor puntaje)
+        ranked_runs = experiment_data["sorted_runs"]
+        
+        if not ranked_runs:
+            return {"error": "No simulations ran"}
 
-    # --- ENDPOINT 4: Lote Paralelo (Estadístico) ---
+        best_run = ranked_runs[0]
+        
+        print(f"✅ Mejor simulación encontrada ({strategy_name}): Score {best_run['score']} - ID {best_run['id']}")
+        
+        # Retornamos DIRECTAMENTE el replay_data que ya calculó el SimulationManager
+        return best_run["replay_data"]
+
+    # --- ENDPOINT 3: Simulación Random (Mejor de N intentos) ---
+    def run_single_simulation_random(self):
+        # Puedes ajustar 'iterations' según qué tan rápido quieras la respuesta.
+        # 1000 iteraciones podría tardar mucho en responder a Unity. 
+        # 50 o 100 suele ser suficiente para encontrar una buena ruta.
+        result_json = self._run_best_simulation(strategy_name="random", iterations=1000)
+        return jsonify(result_json)
+    
+    # --- ENDPOINT 4: Simulación Inteligente (Mejor de N intentos) ---
+    def run_single_simulation_intelligent(self):
+        # Incluso para la inteligente, a veces el azar (posiciones iniciales) afecta.
+        # Corremos un lote pequeño para asegurar el mejor comportamiento.
+        result_json = self._run_best_simulation(strategy_name="intelligent")
+        return jsonify(result_json)
+
+    # --- ENDPOINT 5: Lote Paralelo (Estadístico puro) ---
     def run_batch_experiment(self):
         cfg = self.simulation_config
-        # Si el cliente manda parámetros específicos para el batch, usarlos, si no, usar config
         data = request.json or {}
         iterations = data.get("iterations", 10)
         strategy = data.get("strategy", "intelligent")
