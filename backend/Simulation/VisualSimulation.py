@@ -7,6 +7,8 @@ from multiprocessing import Pool, cpu_count
 import time
 
 from Simulation.SimulationManager import SimulationManager
+#Funciones para calcular y mostrar la tabla de estadísticas
+from Simulation.SimulationAnalysis import calculate_summary_stats, print_comparison_table
 
 # CONFIGURACIÓN
 WIDTH = 8
@@ -313,6 +315,10 @@ def analyze_strategy(manager, strategy_name):
     print(f"📊 Victorias: {stats['wins']} | "
           f"Perdidos: {stats['loss_victims']} | "
           f"Colapsos: {stats['loss_collapse']}")
+    
+    # Asegurar que hay datos para seleccionar el mejor/peor
+    if not ranked_runs:
+        return [], []
 
     best_run = ranked_runs[0]
     worst_run = ranked_runs[-1]
@@ -328,39 +334,60 @@ def analyze_strategy(manager, strategy_name):
     title_worst = f"{strategy_name.upper()} - PEOR ({worst_run['end_reason']})"
     tasks.append((worst_run['replay_data'], f"{strategy_name}_Peor.gif", title_worst))
 
-    return tasks
+    return tasks, ranked_runs
 
 if __name__ == "__main__":
     manager = SimulationManager()
     gif_tasks_queue = []
 
+    # Variables para almacenar los resultados del lote estadístico
+    results_random = []
+    results_intelligent = []
+
     start_time = time.time()
 
-    # RANDOM
+    # --- 1. ANALIZAR ESTRATEGIA RANDOM (Lote Estadístico y Mejores GIFs) ---
     print("\n" + "="*60)
-    print("🎲 ANALIZANDO ESTRATEGIA RANDOM")
+    print("🎲 ANALIZANDO ESTRATEGIA RANDOM (Base)")
     print("="*60)
-    tasks_random = analyze_strategy(manager, "random")
-    gif_tasks_queue.extend(tasks_random)
-    
+    tasks_random_batch, results_random = analyze_strategy(manager, "random")
+    gif_tasks_queue.extend(tasks_random_batch)
 
+
+    # --- 2. ANALIZAR ESTRATEGIA INTELLIGENT (Lote Estadístico y Mejores GIFs) ---
     print("\n" + "="*60)
-    print("🎲 ANALIZANDO ESTRATEGIA INTELLIGENT")
+    print("🧠 ANALIZANDO ESTRATEGIA INTELLIGENT (Especializados)")
     print("="*60)
-    tasks_intelligent = analyze_strategy(manager, "intelligent")
-    
-    if tasks_intelligent:
-        gif_tasks_queue.extend(tasks_intelligent)
-        print(f"✅ Se generarán {len(tasks_intelligent)} GIFs de victorias")
+    tasks_intelligent_batch, results_intelligent = analyze_strategy(manager, "intelligent")
+    gif_tasks_queue.extend(tasks_intelligent_batch)
+
+    # --- 3. GENERAR Y MOSTRAR ESTADÍSTICAS COMPARATIVAS ---
+    if results_random and results_intelligent:
+        stats_random = calculate_summary_stats("random", results_random)
+        stats_intelligent = calculate_summary_stats("intelligent", results_intelligent)
+        print_comparison_table(stats_random, stats_intelligent)
     else:
-        print("❌ No se encontraron victorias para generar GIFs")
+        print("\n❌ No se pudieron generar suficientes resultados para la tabla de comparación.")
+    
+    # --- 4. BÚSQUEDA ADICIONAL DE VICTORIAS (Mantenemos la lógica original) ---
+    tasks_random_win = find_winning_simulation(manager, "random", MAX_ATTEMPTS)
+    gif_tasks_queue.extend(tasks_random_win)
+    
+    tasks_intelligent_win = find_winning_simulation(manager, "intelligent", MAX_ATTEMPTS)
+    
+    if tasks_intelligent_win:
+        gif_tasks_queue.extend(tasks_intelligent_win)
+        print(f"✅ Se añadirán {len(tasks_intelligent_win)} GIFs de victorias especiales")
+    else:
+        print("❌ No se encontraron victorias especiales para generar GIFs")
 
-    # GENERAR GIFs
+
+    # --- 5. GENERAR TODOS LOS GIFs ---
     print("\n" + "="*60)
     if gif_tasks_queue:
         print(f"🚀 GENERANDO {len(gif_tasks_queue)} GIFs EN PARALELO")
         print("="*60)
-        
+
         num_cores = cpu_count()
         with Pool(processes=num_cores) as pool:
             pool.starmap(generate_gif, gif_tasks_queue)
