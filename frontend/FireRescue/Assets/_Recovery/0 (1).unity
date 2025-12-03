@@ -11780,7 +11780,7 @@ MonoBehaviour:
   agentPrefab: {fileID: 6239472011923364381, guid: 6507f18bdf74743289f589f3d8e5e713, type: 3}
   firePrefab: {fileID: 1833268984159187666, guid: 89bd46be6e31b4c73a66da14305b8cd6, type: 3}
   victimPrefab: {fileID: 6802371264211582086, guid: ee7abd463922c4c4bb5cf196fd4cca1b, type: 3}
-  timePerStep: 1
+  timePerStep: 2
 --- !u!1001 &563983552
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -26081,7 +26081,7 @@ MonoBehaviour:
   wallPrefab: {fileID: 1815556965768342712, guid: ab28728b0fa254a72b4ff881fff75b7a, type: 3}
   wallDoorwayPrefab: {fileID: 6085951222228083450, guid: e62ca80b6e7054ebe8b41cd5198296a2, type: 3}
   doorPrefab: {fileID: 4694473405770988450, guid: 0004e6ea92808495b9ee47f1d82f4083, type: 3}
-  unknownPOIPrefab: {fileID: 9085454556514717672, guid: ecb0cafbc94bf4c9cb513117f3eec8d1, type: 3}
+  unknownPointOfInterestPrefab: {fileID: 9085454556514717672, guid: ecb0cafbc94bf4c9cb513117f3eec8d1, type: 3}
   knownPOIPrefabs:
   - {fileID: 7331434611843032368, guid: dd841b21159a846cc86f376f82a38f25, type: 3}
   - {fileID: 47296300718579630, guid: ea7bbff669b1a49b4beb5a938c2418db, type: 3}
@@ -26092,8 +26092,7 @@ MonoBehaviour:
   - {fileID: 6966856067578273568, guid: a1e23522976fa428fa13b35abc9066d3, type: 3}
   - {fileID: 6802371264211582086, guid: ee7abd463922c4c4bb5cf196fd4cca1b, type: 3}
   - {fileID: 8668089407034007416, guid: ac7bf6d015c8e4601994a1ccae737147, type: 3}
-  firePrefab: {fileID: 5569611665156635333, guid: a62da56fd03fb486485a6235d5643ec6, type: 3}
-  smokePrefab: {fileID: 3994327356330702409, guid: e4fa94b2ef85a4d54a674ce0f60e0310, type: 3}
+  firePrefab: {fileID: 1833268984159187666, guid: 89bd46be6e31b4c73a66da14305b8cd6, type: 3}
   agents:
   - {fileID: 1504018503}
   - {fileID: 1706798416}
@@ -26101,34 +26100,6 @@ MonoBehaviour:
   - {fileID: 1392842305}
   - {fileID: 670525858}
   - {fileID: 1547674428}
-  activeFires:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  doors:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  unknownPOIInstances:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  knownPOIInstances:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
 --- !u!1 &1257790586
 GameObject:
   m_ObjectHideFlags: 0

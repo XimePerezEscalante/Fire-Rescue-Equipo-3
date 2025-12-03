@@ -41,7 +41,7 @@ public class WebClient : MonoBehaviour
                 // Iniciamos la configuración del tablero en Unity (si tienes un método para ello)
                 if (agentController != null)
                 {
-                    // Ejemplo: agentController.InitializeMap(mapData.width, mapData.height);
+                    agentController.InitializeMap(mapData);
                 }
 
                 // Paso 2: Una vez tenemos el mapa, pedimos la simulación

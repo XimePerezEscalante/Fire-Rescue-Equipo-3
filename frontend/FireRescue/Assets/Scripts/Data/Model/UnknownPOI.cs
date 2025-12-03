@@ -6,6 +6,7 @@ public class UnknownPOI : MonoBehaviour
     AudioSystem audioSystem;
     public GameObject UnknownPOIPrefab;
     private Animator animator;
+    public int id;
     public int row;
     public int column;
     public bool isFalseAlarm;
@@ -52,7 +53,6 @@ public class UnknownPOI : MonoBehaviour
         
         // Destruir POI
         Destroy(gameObject);
-
     }
 
 }
