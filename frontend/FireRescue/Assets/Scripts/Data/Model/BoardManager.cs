@@ -1,5 +1,8 @@
 using UnityEngine;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 public class BoardManager : MonoBehaviour
 {
@@ -16,13 +19,14 @@ public class BoardManager : MonoBehaviour
     public GameObject[] agents;
     public GameObject[] activeFires;
     public GameObject[] doors;
-    public GameObject[] unknownPOIInstances;
-    public GameObject[] knownPOIInstances;
+    public List<GameObject> unknownPOIInstances;
+    public List<GameObject> knownPOIInstances;
+    public List<GameObject> activeWalls;
     public static float XWall{get; private set;}
     public static float YWall{get; private set;}
     public static float ZWall{get; private set;}
-    private static string[,] Walls = new string[6,8]
-    {
+    public string[,] Walls;//[,] Walls = new string[6,8];
+    /*{
         {
             "1100",
             "1000",
@@ -83,9 +87,9 @@ public class BoardManager : MonoBehaviour
             "0011",
             "0111"
         }
-    };
+    };*/
     
-    private static int[,] Doors = new int[8,4]
+    public int[,] Doors;/* = new int[8,4]
     {
         {1, 3, 1, 4},
         {2, 5, 2, 6},
@@ -95,15 +99,15 @@ public class BoardManager : MonoBehaviour
         {4, 6, 4, 7},
         {6, 5, 6, 6},
         {6, 7, 6, 8}
-    };
+    };*/
 
-    private static int[,] EntryPoints = new int[4,2]
+    public int[,] EntryPoints; /* = new int[4,2]
     {
         {1, 6}, 
         {3, 1},
         {4, 8}, 
         {6, 3}
-    };
+    };*/
 
     private static int[,] Fire = new int[10,2]
     {
@@ -137,14 +141,15 @@ public class BoardManager : MonoBehaviour
         XWall = 0;
         YWall = 0.5f;
         ZWall = 0;
-        AddEntryPointsToWallMatrix();
-        AddDoorsToWallMatrix();
-        PlaceWalls();
+        //AddEntryPointsToWallMatrix();
+        //AddDoorsToWallMatrix();
+        //PlaceWalls();
         /*InstantiateFire();
         OpenDoor("p3");
         OpenDoor("p4");
         OpenDoor("p5");
-        InstantiateUnknownPOI();*/
+        */
+        InstantiateUnknownPOI();
         //TurnPOIAround(2, 4);
         //MoveAgent(1, 6, 1);
         // Explosion(1, 1);
@@ -185,6 +190,23 @@ public class BoardManager : MonoBehaviour
         return intValue;
     }
 
+    public void DeleteNullObjects(int listNumber)
+    {
+        if (listNumber == 0)
+        {
+            for (int i = unknownPOIInstances.Count - 1;i >= 0;i--)
+            {
+                unknownPOIInstances.RemoveAt(i);
+            }
+        }
+        else if (listNumber == 1)
+        {
+            for (int i = knownPOIInstances.Count - 1;i >= 0;i--)
+            {
+                knownPOIInstances.RemoveAt(i);
+            }
+        }
+    }
     public void NewFire(bool isMapInitialized, int type, int x, int y)
     {
         if (isMapInitialized)
@@ -197,20 +219,18 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    public GameObject NewPOI(bool isMapInitialized, bool revealed, string type, int r, int c)
+    public GameObject NewPOI(bool revealed, string type, int r, int c)
     {
-        if (isMapInitialized)
+        if (revealed && type == "v")
         {
-            if (revealed && type == "v")
-            {
-                float XCoord = CorrectXCoordinates(c);
-                float ZCoord = CorrectZCoordinates(r);
-                return InstantiateKnownPOI(XCoord, ZCoord);
-            }
-            else
-            {
-                return InstantiateOneUnknownPOI(type, r, c);
-            }
+            float XCoord = CorrectXCoordinates(c);
+            float ZCoord = CorrectZCoordinates(r);
+            return InstantiateKnownPOI(XCoord, ZCoord);
+        }
+        else
+        {
+            return InstantiateOneUnknownPOI(type, r, c);
+        }
             
             /*if (revealed)
             {
@@ -218,12 +238,6 @@ public class BoardManager : MonoBehaviour
 
                 TurnPOIAround(r, c);
             }*/
-        }
-        else
-        {
-            InstantiateUnknownPOI();
-        }
-        return null;
     }
 
     private void InstantiateOneFire(int type, int r, int c)
@@ -292,8 +306,8 @@ public class BoardManager : MonoBehaviour
         {
             newPOI.GetComponent<UnknownPOI>().SetFalseAlarm(false);
         }
-        // Agregar objeto al arreglo unknownPOI
-        //unknownPOIInstances[currentIndex] = newPOI;
+        // Agregar objeto a la lista unknownPOI
+        unknownPOIInstances.Add(newPOI);
 
         return newPOI;
     }
@@ -306,51 +320,64 @@ public class BoardManager : MonoBehaviour
         if (type == 1)
         {
             // Crear instancia de pared
-            Instantiate(wallPrefab, spawnPosition, spawnRotation);
+            activeWalls.Add(Instantiate(wallPrefab, spawnPosition, spawnRotation));
         }
         else if (type == 2)
         {
             // Crear instancia de pared con marco para puerta
-            Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation);
+            activeWalls.Add(Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation));
 
-            // Obtener indice en el que se agregara la puerta
-            int currentIndex = 0;
-
-            foreach (GameObject door in doors)
+            // Checar si aún hay espacio para más puertas
+            bool isFull = true;
+            foreach (var d in doors)
             {
-                if (door != null)
+                if (d == null)   // hay espacio disponible
                 {
-                    currentIndex += 1;
+                    isFull = false;
+                    break;
                 }
             }
 
-            // Crear nombre de la puerta para ajustarse al JSON
-            string doorName = "p" + (currentIndex + 1);
+            if (isFull == false) {
+                // Obtener indice en el que se agregara la puerta
+                int currentIndex = 0;
 
-            if (YRotation == 0) {
-                // Modificar posicion en x de la puerta para que quede en medio de la pared
-                Vector3 doorSpawnPosition = new Vector3(XCoord + 1.3f, YCoord, ZCoord);
-                // Crear instancia de puerta
-                doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
-                // Asignar posicion 0 -> "frontal"
-                doors[currentIndex].GetComponent<Door>().position = 0;
-            }
-            else
-            {
-                Vector3 doorSpawnPosition = new Vector3(XCoord, YCoord, ZCoord - 1.3f);
-                // Crear instancia de puerta
-                doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
-                // Asignar posicion 1 -> "lateral"
-                doors[currentIndex].GetComponent<Door>().position = 1;
-            }
+                foreach (GameObject door in doors)
+                {
+                    if (door != null)
+                    {
+                        currentIndex += 1;
+                    }
+                }
 
-            doors[currentIndex].GetComponent<Door>().name = doorName;
+                // Crear nombre de la puerta para ajustarse al JSON
+                string doorName = "p" + (currentIndex + 1);
+
+                if (YRotation == 0) {
+                    // Modificar posicion en x de la puerta para que quede en medio de la pared
+                    Vector3 doorSpawnPosition = new Vector3(XCoord + 1.3f, YCoord, ZCoord);
+                    // Crear instancia de puerta
+                    doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
+                    // Asignar posicion 0 -> "frontal"
+                    doors[currentIndex].GetComponent<Door>().position = 0;
+                }
+                else
+                {
+                    Vector3 doorSpawnPosition = new Vector3(XCoord, YCoord, ZCoord - 1.3f);
+                    // Crear instancia de puerta
+                    doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
+                    // Asignar posicion 1 -> "lateral"
+                    doors[currentIndex].GetComponent<Door>().position = 1;
+                }
+
+                doors[currentIndex].GetComponent<Door>().name = doorName;
+            }
             
         }
         else if (type == 3)
         {
             // Crear instancia de pared con marco para puerta
-            Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation);
+            activeWalls.Add(Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation));
         }
     }
 
@@ -402,7 +429,7 @@ public class BoardManager : MonoBehaviour
                 newPOI.GetComponent<UnknownPOI>().SetFalseAlarm(false);
             }
             // Agregar objeto al arreglo unknownPOI
-            unknownPOIInstances[i] = newPOI;
+            unknownPOIInstances.Add(newPOI);
         }
 
     }
@@ -425,9 +452,9 @@ public class BoardManager : MonoBehaviour
         // Crear instancia del objeto
         Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
         Quaternion spawnRotation = Quaternion.identity;
-        GameObject newPOI = Instantiate(knownPOIPrefabs[indexPOI], spawnPosition, spawnRotation);
+        GameObject newPOI = Instantiate(knownPOIPrefabs[0], spawnPosition, spawnRotation);
         // Agregar objeto al arreglo knownPOI
-        //knownPOIInstances[currentIndex] = newPOI;
+        knownPOIInstances.Add(newPOI);
         return newPOI;
     }
 
@@ -442,6 +469,38 @@ public class BoardManager : MonoBehaviour
         // Mover agente
         agents[agentIndex].GetComponent<Agent>().Move(r, c, newPosition, rotation);
 
+    }
+
+    public void MovePOI(int r, int c, bool isBeingCarried)
+    {
+        GameObject[] allPOIS;
+        allPOIS = GameObject.FindGameObjectsWithTag("KnownPOI");
+
+        // Establecer coordenadas
+        float XCoord = CorrectXCoordinates(c);
+        float ZCoord = CorrectZCoordinates(r);
+        float YCoord;
+
+        // Crear vector de posicion de objeto
+        if (isBeingCarried == true)
+        {
+            YCoord = 3.29f;
+        }
+        else
+        {
+            YCoord = 0.5f;
+        }
+
+        Vector3 newPosition = new Vector3(XCoord, YCoord, ZCoord);
+
+        // Encontrar POI
+        foreach (GameObject onePOI in allPOIS)
+        {
+            if (onePOI.GetComponent<KnownPOI>().row == r && onePOI.GetComponent<KnownPOI>().column == c)
+            {
+                onePOI.GetComponent<KnownPOI>().Move(r, c, newPosition);
+            }
+        }
     }
 
     public void TurnPOIAround(int r, int c)
@@ -530,16 +589,32 @@ public class BoardManager : MonoBehaviour
         return (6 - row) * 6.4f;
     }
 
-    private void AddDoorsToWallMatrix()
+    public void AddDoorsToWallMatrix()
     {
+        for (int i = 0; i < Doors.GetLength(0); i++)
+        {
+            string row = "";
+            for (int j = 0; j < Doors.GetLength(1); j++)
+            {
+                row += Doors[i, j] + " ";
+            }
+            Debug.Log("Door " + i + ": " + row);
+        }
+
         int currentI;
         int currentJ;
         string currentValue;
 
-        for (int i = 0;i < 8;i++)
+        for (int i = 0;i < Doors.GetLength(0);i++)
         {
             currentI = Doors[i,0];
             currentJ = Doors[i,1];
+
+            if (currentI <= 0 || currentJ <= 0)
+            {
+                currentI += 1;
+                currentJ += 1;
+            }
 
             // La puerta conduce a la misma fila
             if (Doors[i,2] == currentI)
@@ -578,7 +653,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private void AddEntryPointsToWallMatrix()
+    public void AddEntryPointsToWallMatrix()
     {
         string currentValue;
 
@@ -617,7 +692,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private void PlaceWalls()
+    public void PlaceWalls()
     {
         for (int i = 5;i >= 0;i--)
         {

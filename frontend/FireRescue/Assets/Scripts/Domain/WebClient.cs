@@ -17,7 +17,7 @@ public class WebClient : MonoBehaviour
     }
 
     // --- GET: Obtener Mapa ---
-    async IEnumerator GetMapData()
+    IEnumerator GetMapData()
     {
         string url = baseUrl + "/getMap";
         Debug.Log("Solicitando mapa a: " + url);
@@ -46,7 +46,7 @@ public class WebClient : MonoBehaviour
 
                 // Una vez tenemos el mapa, pedimos la simulación en aleatorio
                 StartCoroutine(PostSimulationIntelligent());
-                // await StartCoroutine(PostSimulatioRandom());
+                //StartCoroutine(PostSimulationRandom());
             }
         }
     }

@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from Simulation.Simulation import Simulation
 from Simulation.SimulationManager import SimulationManager
-from Simulation.AuxFunctions import readMap
+from Simulation.AuxFunctions import formatMap
 import json
 
 # Configuración por defecto utilizada
@@ -87,7 +87,7 @@ class Server:
             En caso de error, retorna JSON con descripción del error y código 500.
         """
         try:
-            map_data = readMap()
+            map_data = formatMap()
             response = {
                 "width": self.simulation_config["grid_width"],
                 "height": self.simulation_config["grid_height"]
@@ -156,6 +156,7 @@ class Server:
             JSON con los datos de reproducción de la mejor simulación encontrada.
         """
         result_json = self._run_best_simulation(strategy_name="intelligent")
+        print(result_json)
         return jsonify(result_json)
 
     def run_batch_experiment(self):
