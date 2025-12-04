@@ -46,7 +46,7 @@ public class WebClient : MonoBehaviour
 
                 // Una vez tenemos el mapa, pedimos la simulación en aleatorio
                 StartCoroutine(PostSimulationIntelligent());
-                // await StartCoroutine(PostSimulatioRandom());
+                //StartCoroutine(PostSimulationRandom());
             }
         }
     }

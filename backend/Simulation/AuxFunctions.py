@@ -110,3 +110,66 @@ def dijkstra_search(agent, targets, avoid_fire=False):
                     new_first_step = first_step if first_step else next_pos
                     heapq.heappush(queue, (total_step_cost, next_pos, new_first_step))
     return None
+
+
+def formatMap():
+    current_dir = os.path.dirname(__file__)
+    file_path = os.path.join(current_dir, "..", "Data", "InitialState.txt")
+    file_path = os.path.abspath(file_path)
+
+    if not os.path.exists(file_path):
+        return None
+
+    with open(file_path, mode="r") as f:
+        # Leer todas las filas y borrar saltos de línea
+        text = [line.strip() for line in f.readlines()]
+
+        # Extraer solo las 6 filas de walls
+        raw_walls = [row.split(" ") for row in text[:6]]
+
+        # Unir bloques de 4 chars en un solo string por fila
+        walls = ["".join(blocks) for blocks in raw_walls]
+
+        def parse_coords(line_list, type_data):
+            res = []
+            for item in line_list:
+                vals = item.split()
+
+                # Coordenadas base
+                row = int(vals[0])
+                col = int(vals[1])
+
+                # Parseo según el tipo de dato
+                if type_data == "poi":
+                    letter = vals[2]   # f o v
+                    type_val = 0 if letter == "f" else 1
+                    res.append([row, col, type_val])
+
+                elif type_data in ("fire", "entry"):
+                    res.append([row, col])
+
+                elif type_data == "door":
+                    row2 = int(vals[2])
+                    col2 = int(vals[3])
+                    res.append([[row, col], [row2, col2], "Closed"])
+
+            return res
+        pois = parse_coords(text[6:9], 'poi')
+        fires = parse_coords(text[9:19], 'fire')
+        doors = parse_coords(text[19:27], 'door')
+        entryPoints = parse_coords(text[27::], 'entry')
+
+        mapData = {
+            "pois": [
+                {"y": p[0], "x": p[1], "type": p[2], "revealed": False}
+                for p in pois
+            ],
+            "walls": walls,
+            "fires": fires,
+            "doors": [
+                {"p1": d[0], "p2": d[1], "status": d[2]}
+                for d in doors
+            ],
+            "entryPoints": [{"values": (ep[0], ep[1])} for ep in entryPoints]
+        }
+    return mapData

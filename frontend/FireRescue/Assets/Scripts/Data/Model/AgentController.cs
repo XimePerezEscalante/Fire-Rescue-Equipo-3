@@ -49,6 +49,52 @@ public class AgentController : MonoBehaviour
         StartCoroutine(AnimateFrames(response.data.frames));
     }
 
+    public void SetMatrices(Frame frame)
+    {
+        int lengthDoor = frame.doors.Length;
+        int lengthWalls = frame.walls.Length;
+        
+        string[,] wallsFromMap = new string[lengthWalls, 8];
+        int[,] doorsFromMap = new int[lengthDoor, 4];
+
+        for (int row = 0;row < 6;row++)
+        {
+            string rowData = frame.walls[row];  
+
+            for (int col = 0;col < 8;col++)
+            {
+                int startIndex = col * 4;     // posición donde inicia la celda
+                string cell = rowData.Substring(startIndex, 4);
+                wallsFromMap[row, col] = cell;
+
+                Debug.Log($"Cell[{row},{col}] = {cell}");
+                
+                // Si quieres cada uno de los 4 chars:
+                char up    = cell[0];
+                char right = cell[1];
+                char down  = cell[2];
+                char left  = cell[3];
+
+                Debug.Log($"U:{up} R:{right} D:{down} L:{left}");
+            }
+        }
+
+        for (int i = 0; i < frame.doors.Length; i++)
+        {
+            doorsFromMap[i, 0] = frame.doors[i].p1[0]; // y1
+            doorsFromMap[i, 1] = frame.doors[i].p1[1]; // x1
+            doorsFromMap[i, 2] = frame.doors[i].p2[0]; // y2
+            doorsFromMap[i, 3] = frame.doors[i].p2[1]; // x2
+        }
+
+        BM.Doors = doorsFromMap;
+        BM.Walls = wallsFromMap;
+
+        BM.AddDoorsToWallMatrix();
+        BM.PlaceWalls();
+
+    }
+
     public void InitializeMap(MapDataResponse mapResponse)
     {
         string[,] wallsFromMap = new string[6,8];
@@ -467,8 +513,9 @@ public class AgentController : MonoBehaviour
 
         BM.DeleteNullObjects(0);
         BM.DeleteNullObjects(1);
-        InstantiateDoorsFromFrame(frame);
-        UpdateWalls(frame);
+        SetMatrices(frame);
+        //InstantiateDoorsFromFrame(frame);
+        //UpdateWalls(frame);
 
 
         /*foreach (string wall in frame.walls)

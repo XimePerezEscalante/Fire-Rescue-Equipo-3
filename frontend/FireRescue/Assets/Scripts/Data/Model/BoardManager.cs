@@ -327,7 +327,7 @@ public class BoardManager : MonoBehaviour
             // Crear instancia de pared con marco para puerta
             activeWalls.Add(Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation));
 
-            /*// Checar si aún hay espacio para más puertas
+            // Checar si aún hay espacio para más puertas
             bool isFull = true;
             foreach (var d in doors)
             {
@@ -371,7 +371,7 @@ public class BoardManager : MonoBehaviour
                 }
 
                 doors[currentIndex].GetComponent<Door>().name = doorName;
-            }*/
+            }
             
         }
         else if (type == 3)
@@ -605,10 +605,16 @@ public class BoardManager : MonoBehaviour
         int currentJ;
         string currentValue;
 
-        for (int i = 0;i < 8;i++)
+        for (int i = 0;i < Doors.GetLength(0);i++)
         {
             currentI = Doors[i,0];
             currentJ = Doors[i,1];
+
+            if (currentI <= 0 || currentJ <= 0)
+            {
+                currentI += 1;
+                currentJ += 1;
+            }
 
             // La puerta conduce a la misma fila
             if (Doors[i,2] == currentI)

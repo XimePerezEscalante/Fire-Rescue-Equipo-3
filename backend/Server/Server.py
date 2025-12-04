@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from Simulation.Simulation import Simulation
 from Simulation.SimulationManager import SimulationManager
-from Simulation.AuxFunctions import readMap
+from Simulation.AuxFunctions import formatMap
 import json
 
 DEFAULT_CONFIG = {
@@ -52,7 +52,7 @@ class Server:
     # --- ENDPOINT 2: Obtener Mapa ---
     def get_map_data(self):
         try:
-            map_data = readMap()
+            map_data = formatMap()
             response = {
                 "width": self.simulation_config["grid_width"],
                 "height": self.simulation_config["grid_height"]
@@ -106,6 +106,7 @@ class Server:
         # Incluso para la inteligente, a veces el azar (posiciones iniciales) afecta.
         # Corremos un lote pequeño para asegurar el mejor comportamiento.
         result_json = self._run_best_simulation(strategy_name="intelligent")
+        print(result_json)
         return jsonify(result_json)
 
     # --- ENDPOINT 5: Lote Paralelo (Estadístico puro) ---

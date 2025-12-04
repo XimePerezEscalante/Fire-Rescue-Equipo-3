@@ -42,7 +42,7 @@ class Simulation:
             "agents": [{"id": a.id, "x": a.pos[0], "y": a.pos[1], "carrying": a.carrying_victim, "role": getattr(a, "role", "Base")} for a in self.model.agents_list],
             "fires": [{"y": f[0], "x": f[1], "state": f[2]} for f in self.model.fires],
             "pois": [{"y": p[0], "x": p[1], "type": p[2], "revealed": (p[3] if len(p)>3 else False)} for p in self.model.pois],
-            "walls": [row[:] for row in self.model.walls],
+            "walls": ["".join(row) for row in self.model.walls],
             "doors": [{"p1": d[0], "p2": d[1], "status": d[2]} for d in self.model.doors],
             "stats": {"saved": self.model.victims_saved, "lost": self.model.victims_lost, "damage": self.model.damage_taken}
         }
