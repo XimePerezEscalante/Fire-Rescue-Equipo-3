@@ -1,11 +1,17 @@
 import os
-import numpy as np
 import heapq
+import random
 
-def get_grid(model):
-    return np.zeros((model.grid.height, model.grid.width))
 
 def readMap():
+    """
+    Lee el archivo de texto 'InitialState.txt', parsea la configuración del entorno y estructura los datos del mapa.
+    
+    Parámetros:
+        Ninguno.
+    Retorna:
+        dict: Diccionario 'mapData' que contiene listas de coordenadas para paredes, POIs, fuego, puertas y entradas.
+    """
     current_dir = os.path.dirname(__file__)
     file_path = os.path.join(current_dir, "..", "Data", "InitialState.txt")
     file_path = os.path.abspath(file_path)
@@ -53,8 +59,15 @@ def readMap():
 
 def dijkstra_search(agent, targets, avoid_fire=False):
     """
-    Encuentra el siguiente paso hacia el objetivo más cercano.
-    Considera la habilidad del agente para romper paredes.
+    Determina el siguiente paso óptimo para alcanzar el objetivo más cercano calculando el camino de menor costo.
+    Implementa el algoritmo de Dijkstra utilizando una cola de prioridad (heapq) para explorar el grafo de la cuadrícula, considerando costos variables por terreno, fuego, humo, ruptura de paredes y apertura de puertas.
+    
+    Parámetros:
+        agent (Agent): La instancia del agente que realiza la búsqueda (necesario para verificar habilidades y posición).
+        targets (list): Lista de coordenadas objetivo (tuplas) a las que el agente desea llegar.
+        avoid_fire (bool): Bandera para asignar un costo prohibitivo a las celdas con fuego.
+    Retorna:
+        tuple | None: Coordenadas (x, y) del primer paso del camino óptimo encontrado, o None si no hay camino.
     """
     start = agent.pos
     
@@ -110,3 +123,32 @@ def dijkstra_search(agent, targets, avoid_fire=False):
                     new_first_step = first_step if first_step else next_pos
                     heapq.heappush(queue, (total_step_cost, next_pos, new_first_step))
     return None
+
+def get_closest_entry_to_pois(entry_points, pois):
+    """
+    Calcula qué punto de entrada es el más cercano a cualquier punto de interés (POI) activo.
+    Implementa el algoritmo de Distancia Manhattan para calcular la cercanía entre coordenadas.
+    
+    Parámetros:
+        entry_points (list): Lista de coordenadas [y, x] de las entradas disponibles.
+        pois (list): Lista de POIs activos con formato [y, x, type, ...].
+    Retorna:
+        tuple: Coordenadas (x, y) de la entrada más cercana. Si no hay datos, retorna una aleatoria o (0,0).
+    """
+    if not pois or not entry_points:
+        if entry_points:
+            rng = random.choice(entry_points)
+            return (rng[1], rng[0])
+        return (0, 0)
+    best_entry = None
+    min_dist = float('inf')
+    for ep in entry_points:
+        ep_y, ep_x = ep[0], ep[1]
+        for p in pois:
+            py, px = p[0], p[1]
+            # Distancia Manhattan
+            dist = abs(ep_x - px) + abs(ep_y - py)
+            if dist < min_dist:
+                min_dist = dist
+                best_entry = (ep_x, ep_y)
+    return best_entry

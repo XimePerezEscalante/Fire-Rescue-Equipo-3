@@ -3,29 +3,39 @@ import random
 
 class AgentBaseModel(Agent):
     def __init__(self, model, pa, id, printable=False):
+        """
+        Constructor del agente base. Inicializa sus atributos principales, puntos de acción (PA) y estadísticas.
+        
+        Parámetros:
+            model (Model): Referencia al modelo de simulación principal.
+            pa (int): Cantidad máxima de Puntos de Acción que recibe por turno.
+            id (int): Identificador único del agente.
+            printable (bool): Bandera para habilitar impresiones de depuración en consola.
+        Retorna:
+            None
+        """
         super().__init__(model)
         self.model = model
         self.id = id
         self.printable = printable
-        
-        # Gestión de Puntos de Acción (PA)
-        # CORRECCIÓN: Inicializamos en 0. El step() añade los PA del turno.
-        # Esto evita que en el turno 1 tengan el doble de PA (Inicial + Recarga).
         self.pa = 0 
         self.totalPA = pa 
         self.max_pa_savings = 4 
-        
         self.carrying_victim = False
         self.role = "Base"
-        
-        # Estadísticas simples
         self.steps_taken = 0
         self.movement_count = 0
     
     def step(self):
-        # Regla: Recargar PA (maximo pa del turno + guardados)
+        """
+        Ejecuta el ciclo de vida del agente durante un turno. Recarga PA y ejecuta un bucle de acciones hasta agotar los puntos o no tener movimientos válidos.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            None
+        """
         self.pa = min(self.pa + self.totalPA, self.totalPA + self.max_pa_savings)
-
         while self.pa > 0:
             neighbors = self.get_valid_neighbors()
             if not neighbors:
@@ -36,9 +46,7 @@ class AgentBaseModel(Agent):
                 if self.printable:
                     print(f"   🛑 Agente {self.id}: Guarda {self.pa} PA (Requiere {cost}).")
                 break
-            
             action_taken = self.attempt_action(target_pos)
-            
             if action_taken:
                 self.model.notify_observer()
             else:
@@ -47,56 +55,148 @@ class AgentBaseModel(Agent):
             self.model.send_to_ambulance(self)
     
     def predict_action_cost(self, curr_pos, target_pos):
+        """
+        Calcula el costo estimado de PA necesario para moverse a una casilla adyacente, considerando obstáculos (paredes, puertas) y peligros (fuego, humo).
+        
+        Parámetros:
+            curr_pos (tuple): Coordenadas actuales (x, y).
+            target_pos (tuple): Coordenadas objetivo (x, y).
+        Retorna:
+            int: El costo en Puntos de Acción para realizar el movimiento.
+        """
         cx, cy = curr_pos
         tx, ty = target_pos
         
         wall_dir = self._get_direction_index(cx, cy, tx, ty)
 
-        # 1. Costo de Pared
+        # Costo de Pared
         if self.model.has_wall(cx, cy, wall_dir):
             return 2 
             
-        # 2. Costo de Puerta Cerrada
+        # Costo de Puerta Cerrada
         door_idx = self.model.get_door_index(curr_pos, target_pos)
         if door_idx != -1 and self.model.doors[door_idx][2] == 'Closed':
             return 1 
             
-        # 3. Costo de Peligros
+        # Costo de Peligros
         cell_status = self.model.get_cell_status(target_pos)
         if cell_status in ['Fire', 'Smoke']:
             return 1
             
-        # 4. Costo de Movimiento
+        # Costo de Movimiento
         return 2 if self.carrying_victim else 1
 
     # --- DECISIONES ---
     def decision_choose_movement(self, possible_steps):
+        """
+        Decide cuál será el siguiente movimiento entre las casillas disponibles.
+        En la clase base, esta decisión es puramente estocástica (aleatoria).
+        
+        Parámetros:
+            possible_steps (list): Lista de tuplas con las coordenadas adyacentes válidas.
+        Retorna:
+            tuple: Coordenada (x, y) elegida para moverse.
+        """
         return random.choice(possible_steps)
 
     def decision_extinguish_fire(self):
+        """
+        Decide si el agente intentará extinguir el fuego presente en la casilla objetivo.
+        En la clase base, retorna una decisión aleatoria.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            bool: True si decide extinguir, False en caso contrario.
+        """
         return random.choice([True, False])
     
     def decision_complete_extinguish(self):
+        """
+        Decide si el agente gastará puntos extra para extinguir el fuego completamente o solo reducirlo a humo.
+        En la clase base, retorna una decisión aleatoria.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            bool: True si decide extinguir completamente, False si solo reduce a humo.
+        """
         return random.choice([True, False])
 
     def decision_chop_wall(self):
+        """
+        Decide si el agente romperá una pared que bloquea su camino.
+        En la clase base, retorna una decisión aleatoria.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            bool: True si decide romper la pared, False si decide no hacerlo.
+        """
         return random.choice([True, False])
     
     def decision_open_door(self):
+        """
+        Decide si el agente abrirá una puerta cerrada.
+        En la clase base, retorna una decisión aleatoria.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            bool: True si decide abrir la puerta, False en caso contrario.
+        """
         return random.choice([True, False])
 
     def decision_reveal_poi(self):
+        """
+        Decide si el agente revelará un Punto de Interés (POI) en su posición.
+        En la clase base, retorna una decisión aleatoria.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            bool: True si decide revelar el POI, False en caso contrario.
+        """
         return random.choice([True, False])
 
     def decision_rescue_victim(self):
+        """
+        Decide si el agente recogerá a una víctima descubierta.
+        En la clase base, retorna una decisión aleatoria.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            bool: True si decide rescatar (cargar) a la víctima, False en caso contrario.
+        """
         return random.choice([True, False])
+
 
     # --- ACCIONES ---
     def get_valid_neighbors(self):
+        """
+        Obtiene las coordenadas de las celdas adyacentes (vecindad de Von Neumann) válidas dentro de la cuadrícula.
+        
+        Parámetros:
+            Ninguno.
+        Retorna:
+            list: Lista de tuplas (x, y) con los vecinos.
+        """
         return self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
     
     def _get_direction_index(self, cx, cy, tx, ty):
-        """ Helper para obtener el índice de dirección (0:Up, 1:Right, 2:Down, 3:Left) """
+        """
+        Calcula el índice numérico que representa la dirección cardinal del movimiento.
+        0: Arriba, 1: Derecha, 2: Abajo, 3: Izquierda.
+        
+        Parámetros:
+            cx (int): X actual.
+            cy (int): Y actual.
+            tx (int): X objetivo.
+            ty (int): Y objetivo.
+        Retorna:
+            int: Índice de dirección (0-3) o -1 si no es adyacente ortogonalmente.
+        """
         if ty > cy: return 0 
         elif tx > cx: return 1 
         elif ty < cy: return 2 
@@ -104,12 +204,29 @@ class AgentBaseModel(Agent):
         return -1
     
     def is_outside_building(self, pos):
+        """
+        Verifica si una posición dada corresponde a los bordes exteriores del mapa (zona segura).
+        
+        Parámetros:
+            pos (tuple): Coordenadas (x, y) a verificar.
+        Retorna:
+            bool: True si está en el borde, False si está dentro del edificio.
+        """
         x, y = pos
         return (x == 0 or x == self.grid.width - 1 or 
                 y == 0 or y == self.grid.height - 1)
 
     # --- ACCIONES ---
     def attempt_action(self, target_pos):
+        """
+        Intenta ejecutar una acción compleja hacia una posición objetivo. 
+        Gestiona la interacción con paredes, puertas, fuego, humo y POIs, deduciendo los PA correspondientes.
+        
+        Parámetros:
+            target_pos (tuple): Coordenadas (x, y) hacia donde se quiere interactuar o mover.
+        Retorna:
+            bool: True si se realizó alguna acción (movimiento o interacción), False si la acción fue bloqueada o cancelada.
+        """
         curr_pos = self.pos
         cx, cy = curr_pos
         tx, ty = target_pos
@@ -121,7 +238,8 @@ class AgentBaseModel(Agent):
             if self.printable: print(f"   🧱 Agente {self.id}: Pared hacia {target_pos}.")
             
             if self.pa >= 2 and self.decision_chop_wall():
-                if self.printable: print(f"   🪓 Agente {self.id}: Rompiendo pared (-2 PA).")
+                if self.printable:
+                    print(f"   🪓 Agente {self.id}: Rompiendo pared (-2 PA).")
                 self.model.remove_wall(cx, cy, wall_dir)
                 self.model.damage_taken += 1
                 self.pa -= 2
@@ -191,8 +309,7 @@ class AgentBaseModel(Agent):
             self.steps_taken += 1
             self.movement_count += 1
             
-            # --- SALVAMENTO (REGLAS FAMILIARES) ---
-            # En reglas familiares: llevar víctima FUERA del edificio
+            # --- SALVAMIENTO ---
             if self.carrying_victim and self.model.is_outside_building(target_pos):
                 if self.printable: print(f"   🎉 Agente {self.id}: ¡VÍCTIMA SALVADA!")
                 self.carrying_victim = False
@@ -210,7 +327,6 @@ class AgentBaseModel(Agent):
                             if self.printable: print(f"   🚑 Agente {self.id}: ¡Víctima recogida!")
                             self.carrying_victim = True
                             self.model.remove_poi(target_pos)
-                            # No reponer POI aquí, se hace al final del turno
                     else:
                         if self.printable: print(f"   👻 Agente {self.id}: Falsa alarma.")
                         self.model.remove_poi(target_pos)

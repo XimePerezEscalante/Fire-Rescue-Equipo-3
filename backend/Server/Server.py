@@ -122,7 +122,7 @@ class Server:
             strategy_name=strategy_name
         )
         
-        # Obtiene la lista ordenada descendentemente por puntaje (mejor simulación en índice 0)
+        # Obtiene la lista ordenada descendentemente por puntaje
         ranked_runs = experiment_data["sorted_runs"]
         
         if not ranked_runs:

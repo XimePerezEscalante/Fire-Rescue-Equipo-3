@@ -67,7 +67,7 @@ def print_comparison_table(stats_random, stats_intelligent):
         stats_intelligent (dict): Estadísticas resumidas de la estrategia inteligente
     """
     print("\n\n" + "="*80)
-    print("RESULTADOS COMPARATIVOS DEL EXPERIMENTO DE LOTE")
+    print("RESULTADOS COMPARATIVOS DEL EXPERIMENTO")
     print("="*80)
     
     # Encabezado de tabla Markdown
@@ -93,110 +93,144 @@ def print_comparison_table(stats_random, stats_intelligent):
     
     print("\n" + "="*80)
 
+def save_single_plot(strategies, values, colors, title, ylabel, filename):
+    """
+    Función auxiliar para crear, guardar y cerrar una gráfica individual.
+
+    Args:
+        strategies (list of str): Lista con los nombres de las estrategias (eje X). Ej: ['Aleatoria', 'Inteligente'].
+        values (list of float): Lista de valores numéricos correspondientes a cada estrategia.
+        colors (list of str): Lista de códigos de color (hex o nombres) para las barras.
+        title (str): Título principal que aparecerá arriba de la gráfica.
+        ylabel (str): Etiqueta descriptiva para el eje Y (ej: 'Puntos', 'Pasos', 'Unidades').
+        filename (str): Nombre del archivo (incluyendo extensión .png) donde se guardará la imagen.
+
+    Returns:
+        None: La función no retorna ningún valor. Su efecto es crear un archivo de imagen en el disco
+              y liberar la memoria utilizada por la figura de matplotlib.
+    """
+    plt.figure(figsize=(6, 6))
+    bars = plt.bar(strategies, values, color=colors, edgecolor='grey', width=0.6)
+    
+    plt.title(title, fontsize=12, fontweight='bold', pad=15)
+    plt.ylabel(ylabel, fontsize=10)
+    plt.grid(axis='y', linestyle='--', alpha=0.3)
+    
+    # Etiquetas sobre las barras
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height + (height*0.01),
+                 f'{height:.1f}', ha='center', va='bottom', fontweight='bold', fontsize=11)
+
+    plt.tight_layout()
+    plt.savefig(filename, dpi=100)
+    plt.close()
+    print(f"   -> Guardado: {filename}")
+
 def plot_simulation_results(stats_random, stats_intelligent):
     """
-    Genera gráficas comparativas visuales entre dos estrategias.
-    Crea dos archivos PNG: uno con distribución de resultados y otro con métricas de desempeño.
-    
-    Parámetros:
-        stats_random (dict): Estadísticas resumidas de la estrategia aleatoria
-        stats_intelligent (dict): Estadísticas resumidas de la estrategia inteligente
+    Genera y guarda un conjunto de gráficas comparativas visuales entre las dos estrategias.
+    Genera 1 imagen general de distribución de resultados y 6 imágenes individuales 
+    para métricas específicas.
+
+    Args:
+        stats_random (dict): Diccionario que contiene las estadísticas resumidas (promedios, tasas, etc.)
+                             calculadas para la estrategia 'Random'.
+        stats_intelligent (dict): Diccionario que contiene las estadísticas resumidas calculadas 
+                                  para la estrategia 'Intelligent'.
+
+    Returns:
+        None: La función no retorna datos. Genera múltiples archivos .png en el directorio de ejecución.
     """
-    strategies = ['Random', 'Intelligent']
-    colors = ['#FF9999', '#66B2FF']  # Colores diferenciados para cada estrategia
+    # Traducción de nombres de estrategias para el Eje X
+    strategies = ['Aleatoria', 'Inteligente']
+    colors = ['#FF9999', '#66B2FF'] 
     
-    # --- Gráfica 1: Distribución de Resultados Finales ---
+    print("📊 Generando gráficas...")
+
+    # --- Distribución de los resultados ---
     fig1, ax1 = plt.subplots(figsize=(10, 6))
-    metrics = ['Win Rate', 'Loss (Victims)', 'Loss (Collapse)']
+    
+    # Traducción de métricas
+    metrics = ['Tasa Victoria', 'Derrota (Víctimas)', 'Derrota (Colapso)']
     random_vals = [stats_random['win_rate'], stats_random['loss_victims_rate'], stats_random['loss_collapse_rate']]
     intelligent_vals = [stats_intelligent['win_rate'], stats_intelligent['loss_victims_rate'], stats_intelligent['loss_collapse_rate']]
     
     x = np.arange(len(metrics))
     width = 0.35
     
-    # Barras comparativas para cada estrategia
-    rects1 = ax1.bar(x - width/2, random_vals, width, label='Random', color=colors[0], edgecolor='grey')
-    rects2 = ax1.bar(x + width/2, intelligent_vals, width, label='Intelligent', color=colors[1], edgecolor='grey')
+    rects1 = ax1.bar(x - width/2, random_vals, width, label='Aleatoria', color=colors[0], edgecolor='grey')
+    rects2 = ax1.bar(x + width/2, intelligent_vals, width, label='Inteligente', color=colors[1], edgecolor='grey')
     
-    ax1.set_ylabel('Percentage (%)')
-    ax1.set_title('Outcome Distribution by Strategy')
+    ax1.set_ylabel('Porcentaje (%)')
+    ax1.set_title('Distribución de Resultados por Estrategia')
     ax1.set_xticks(x)
     ax1.set_xticklabels(metrics)
     ax1.legend()
     ax1.grid(axis='y', linestyle='--', alpha=0.3)
     
     def autolabel(rects):
-        """
-        Función auxiliar que agrega etiquetas de valor sobre cada barra.
-        
-        Parámetros:
-            rects: Conjunto de rectángulos (barras) a etiquetar
-        """
         for rect in rects:
             height = rect.get_height()
             ax1.annotate(f'{height:.1f}%', xy=(rect.get_x() + rect.get_width() / 2, height),
-                        xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=9)
+                         xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=9)
 
     autolabel(rects1)
     autolabel(rects2)
     plt.tight_layout()
     plt.savefig('comparison_outcomes.png')
-    print("Graph saved: comparison_outcomes.png")
+    plt.close()
+    print("   -> Guardado: comparison_outcomes.png")
     
-    # --- Gráfica 2: Métricas de Desempeño y Eficiencia (6 paneles) ---
-    fig2, axs = plt.subplots(3, 2, figsize=(12, 14))
-    fig2.suptitle('Performance Metrics & Efficiency', fontsize=16)
+    # --- Métricas de Desempeño (Individuales) ---
     
-    def plot_metric(ax, key, title, ylabel, is_derived=False, derived_vals=None):
-        """
-        Función auxiliar para graficar una métrica individual en un panel.
-        
-        Parámetros:
-            ax: Eje de matplotlib donde se dibujará
-            key (str): Clave de la métrica en el diccionario de estadísticas
-            title (str): Título del panel
-            ylabel (str): Etiqueta del eje Y
-            is_derived (bool): Si True, usa valores calculados en lugar de extraer del dict
-            derived_vals (list): Lista con valores calculados para métricas derivadas
-        """
-        if is_derived:
-            vals = derived_vals
-        else:
-            vals = [stats_random[key], stats_intelligent[key]]
-            
-        bars = ax.bar(strategies, vals, color=colors, edgecolor='grey', width=0.6)
-        ax.set_title(title, fontsize=11, fontweight='bold')
-        ax.set_ylabel(ylabel, fontsize=9)
-        ax.grid(axis='y', linestyle='--', alpha=0.3)
-        
-        # Etiquetas de valor sobre cada barra
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height + (height*0.01),
-                    f'{height:.1f}', ha='center', va='bottom', fontweight='bold')
+    # A. Score (Puntaje)
+    save_single_plot(strategies, 
+                     [stats_random['avg_score'], stats_intelligent['avg_score']], 
+                     colors, 
+                     'Puntaje Promedio (Mayor es mejor)', 
+                     'Puntos', 
+                     'metric_score.png')
 
-    # Fila 1: Métricas principales de éxito
-    plot_metric(axs[0, 0], 'avg_score', 'Avg Score (Higher is better)', 'Points')
-    plot_metric(axs[0, 1], 'avg_saved', 'Avg Victims Saved (Higher is better)', 'Count')
-    
-    # Fila 2: Eficiencia temporal y daño estructural
-    plot_metric(axs[1, 0], 'avg_steps', 'Avg Duration (Global Ticks)', 'Rounds')
-    plot_metric(axs[1, 1], 'avg_damage', 'Avg Structural Damage', 'Damage Units')
-    
-    # Fila 3: Esfuerzo operacional y eficiencia de rescate
-    plot_metric(axs[2, 0], 'avg_distance', 'Avg Total Agent Movement', 'Total Steps')
-    
-    # Calcula métrica derivada de eficiencia: movimientos necesarios por víctima salvada
+    # B. Saved Victims (Víctimas Salvadas)
+    save_single_plot(strategies, 
+                     [stats_random['avg_saved'], stats_intelligent['avg_saved']], 
+                     colors, 
+                     'Promedio Víctimas Salvadas (Mayor es mejor)', 
+                     'Cantidad', 
+                     'metric_saved.png')
+
+    # C. Steps (Duración/Pasos Globales)
+    save_single_plot(strategies, 
+                     [stats_random['avg_steps'], stats_intelligent['avg_steps']], 
+                     colors, 
+                     'Duración Promedio (Ticks Globales)', 
+                     'Rondas', 
+                     'metric_steps.png')
+
+    # D. Damage (Daño)
+    save_single_plot(strategies, 
+                     [stats_random['avg_damage'], stats_intelligent['avg_damage']], 
+                     colors, 
+                     'Daño Estructural Promedio', 
+                     'Unidades de Daño', 
+                     'metric_damage.png')
+
+    # E. Distance (Esfuerzo Total)
+    save_single_plot(strategies, 
+                     [stats_random['avg_distance'], stats_intelligent['avg_distance']], 
+                     colors, 
+                     'Movimiento Total Promedio (Esfuerzo)', 
+                     'Pasos Totales', 
+                     'metric_distance.png')
+
+    # F. Efficiency (Eficiencia - Derivada)
     eff_random = stats_random['avg_distance'] / stats_random['avg_saved'] if stats_random['avg_saved'] > 0 else 0
     eff_intel = stats_intelligent['avg_distance'] / stats_intelligent['avg_saved'] if stats_intelligent['avg_saved'] > 0 else 0
     
-    plot_metric(axs[2, 1], None, 'Cost of Rescue (Movement per Saved Victim)', 'Steps / Victim', 
-                is_derived=True, derived_vals=[eff_random, eff_intel])
-    
-    # Nota explicativa para la métrica de eficiencia
-    axs[2, 1].text(0.5, -0.25, "(Lower is better: Less walking per rescue)", 
-                   transform=axs[2, 1].transAxes, ha='center', color='darkred', fontsize=8)
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig('comparison_metrics.png')
-    print("Graph saved: comparison_metrics.png")
+    save_single_plot(strategies, 
+                     [eff_random, eff_intel], 
+                     colors, 
+                     'Costo de Rescate (Movimiento por Víctima)', 
+                     'Pasos / Víctima', 
+                     'metric_efficiency.png')

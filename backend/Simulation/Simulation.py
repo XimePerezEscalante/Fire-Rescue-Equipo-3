@@ -8,7 +8,7 @@ class Simulation:
     Gestiona la ejecución del modelo, el registro de frames y el cálculo de puntajes.
     """
     
-    def __init__(self, width, height, agents, pa, seed=None, strategy="random"):
+    def __init__(self, width, height, agents, pa, strategy="random"):
         """
         Inicializa una nueva simulación con los parámetros especificados.
         
@@ -17,12 +17,8 @@ class Simulation:
             height (int): Alto del grid de simulación
             agents (int): Número de agentes a desplegar
             pa (int): Puntos de acción (energía máxima) de cada agente
-            seed (int): Semilla para reproducibilidad (si es None, se genera aleatoria)
             strategy (str): Estrategia de despliegue de agentes ('random' o 'intelligent')
         """
-        # Establece semilla para reproducibilidad de la simulación
-        self.seed = seed if seed is not None else random.randint(0, 100000)
-        random.seed(self.seed)
         
         # Crea el modelo con callback para registrar cada cambio de estado
         self.model = ExplorerModel(width, height, agents, pa, strategy=strategy, 
@@ -33,8 +29,7 @@ class Simulation:
             "metadata": {
                 "width": width, 
                 "height": height, 
-                "agents": agents, 
-                "seed": self.seed
+                "agents": agents
             },
             "frames": []
         }

@@ -4,8 +4,7 @@ from mesa.space import MultiGrid
 from Simulation.AgentBaseModel import AgentBaseModel
 from Simulation.AgentFireFighter import AgentFireFighter
 from Simulation.AgentRescuer import AgenteRescuer
-from Simulation.AuxFunctions import readMap, get_grid
-from mesa.datacollection import DataCollector
+from Simulation.AuxFunctions import readMap, get_closest_entry_to_pois
 
 class ExplorerModel(Model):
     """
@@ -39,7 +38,6 @@ class ExplorerModel(Model):
         self.grid = MultiGrid(width, height, torus=False)
         self.walls = mapData['walls']
         self.doors = mapData['doors'] 
-        # Estructura de fuego: [y, x, intensity] donde intensity: 1=humo, 2=fuego
         self.fires = [[f[0], f[1], 2] for f in mapData['fires']]
         self.pois = mapData['pois'] 
         self.entryPoints = mapData['entryPoints']
@@ -71,7 +69,6 @@ class ExplorerModel(Model):
             num_agents (int): Cantidad de agentes a desplegar
             pa (int): Puntos de acción de cada agente
         """
-        # Recopila todas las posiciones del perímetro exterior del edificio
         exterior_positions = []
         for x in range(self.grid.width):
             exterior_positions.append((x, 0))
@@ -101,21 +98,15 @@ class ExplorerModel(Model):
             num_agents (int): Cantidad de agentes a desplegar
             pa (int): Puntos de acción de cada agente
         """
-        # Convierte entry points de formato (y,x) a (x,y) para compatibilidad con grid
         outside_doors = [(ep[1], ep[0]) for ep in self.entryPoints]
         
         if self.printable:
             print(f"👥 Desplegando {num_agents} agentes en parejas...")
         
         for i in range(num_agents):
-            # Calcula índice de pareja para distribución (0, 1, 2, ...)
             pair_idx = i // 2 
-            
-            # Asigna puerta de entrada rotando entre las disponibles
             ambulance_idx = pair_idx % len(outside_doors)
             pos = outside_doors[ambulance_idx]
-            
-            # Agentes pares son Bomberos, impares son Rescatadores
             if i % 2 == 0:
                 a = AgentFireFighter(self, pa, i, printable=self.printable)
                 role_icon = "Bomberos"
@@ -379,13 +370,13 @@ class ExplorerModel(Model):
             opp = -1
             
             if dir_idx == 0: 
-                ny += 1
+                ny -= 1 # Arriba visual (Matricial)
                 opp = 2
             elif dir_idx == 1: 
                 nx -= 1
                 opp = 3
             elif dir_idx == 2: 
-                ny -= 1
+                ny += 1 # Abajo visual (Matricial)
                 opp = 0
             elif dir_idx == 3: 
                 nx += 1
@@ -526,7 +517,7 @@ class ExplorerModel(Model):
         """
         cx, cy = center_pos
         # Define vectores de dirección y sus índices correspondientes
-        directions = [(0, 1, 0), (-1, 0, 1), (0, -1, 2), (1, 0, 3)] 
+        directions = [(0, -1, 0), (-1, 0, 1), (0, 1, 2), (1, 0, 3)]
         
         for dx, dy, widx in directions:
             dist = 1
@@ -566,22 +557,24 @@ class ExplorerModel(Model):
 
     def resolve_flashover(self):
         """
-        Convierte todo humo adyacente a fuego en fuego activo.
+        Simula el fenómeno de 'Flashover', actualizando el estado de las celdas de humo a fuego activo si se encuentran adyacentes a una llama existente.
+        Implementa una regla de propagación basada en la vecindad (Von Neumann) para determinar la transición de estado del fuego.
+
+        Parámetros:
+            Ninguno.
+        Retorna:
+            None
         """
-        # Identifica todas las posiciones con fuego activo
         fire_locs = {(f[1], f[0]) for f in self.fires if f[2] == 2}
         
-        # Acumula conversiones para no modificar la lista durante iteración
         to_convert = []
         for i, f in enumerate(self.fires):
-            if f[2] == 1:  # Solo humo
+            if f[2] == 1:
                 fy, fx = f[0], f[1]
                 neighbors = self.grid.get_neighborhood((fx, fy), moore=False, include_center=False)
-                # Convierte si tiene al menos un vecino con fuego
                 if any(n in fire_locs for n in neighbors):
                     to_convert.append(i)
         
-        # Ejecuta conversiones y verifica víctimas afectadas
         for idx in to_convert:
             if 0 <= idx < len(self.fires) and self.fires[idx][2] == 1:
                 self.fires[idx][2] = 2
@@ -590,40 +583,58 @@ class ExplorerModel(Model):
 
     def send_to_ambulance(self, agent):
         """
-        Envía un agente herido a la ambulancia más cercana en el perímetro exterior.
-        Si el agente cargaba una víctima, esta se pierde.
-        
+        Gestiona el reaparecimiento de un agente herido enviándolo a un punto de entrada.
+        Contabiliza la pérdida de víctimas si aplica.
+        Dependiendo de la estrategia activa implementa:
+        - Intelligent: Distancia Manhattan para seleccionar la entrada más cercana a la acción.
+        - Random: Selección estocástica (aleatoria) de un punto seguro en el perímetro.
+
         Parámetros:
-            agent (AgentBaseModel): Agente a evacuar
+            agent (Agent): La instancia del agente que ha sido herido y debe ser reubicado.
+        Retorna:
+            None
         """
         if self.printable:
-            print(f"Agente {agent.id} herido -> Buscando Ambulancia.")
+            print(f"🚑 Agente {agent.id} herido -> Respawn.")
         
-        # Víctima transportada se pierde si el agente es herido
         if agent.carrying_victim:
             self.victims_lost += 1
             agent.carrying_victim = False
             if self.printable:
-                print(f"La víctima que cargaba el Agente {agent.id} ha muerto.")
+                print(f"☠️ La víctima que cargaba el Agente {agent.id} ha muerto.")
 
-        # Construye lista de posiciones del perímetro exterior
-        width, height = self.grid.width, self.grid.height
-        perimeter = []
-        for x in range(width):
-            perimeter.append((x, 0))            
-            perimeter.append((x, height - 1)) 
-        for y in range(1, height - 1):
-            perimeter.append((0, y))            
-            perimeter.append((width - 1, y))   
-        
-        # Busca primera posición del perímetro sin fuego
         target = None
-        for pos in perimeter:
-            if not self.is_fire(pos):
-                target = pos
-                break
-        
-        # Mueve agente a posición segura o esquina superior izquierda como fallback
+
+        # --- ESTRATEGIA INTELLIGENTE ---
+        if self.strategy == "intelligent":
+            target = get_closest_entry_to_pois(self.entryPoints, self.pois)
+            if self.is_fire(target):
+                if self.printable: print("⚠️ La ambulancia óptima tiene fuego. Buscando alternativa...")
+                width, height = self.grid.width, self.grid.height
+                perimeter = []
+                for x in range(width):
+                    perimeter.append((x, 0)); perimeter.append((x, height - 1))
+                for y in range(1, height - 1):
+                    perimeter.append((0, y)); perimeter.append((width - 1, y))
+                
+                safe_perimeter = [p for p in perimeter if not self.is_fire(p)]
+                if safe_perimeter:
+                    target = self.random.choice(safe_perimeter)
+
+        # --- ESTRATEGIA RANDOM ---
+        else:
+            width, height = self.grid.width, self.grid.height
+            perimeter = []
+            for x in range(width):
+                perimeter.append((x, 0))            
+                perimeter.append((x, height - 1)) 
+            for y in range(1, height - 1):
+                perimeter.append((0, y))            
+                perimeter.append((width - 1, y))    
+            safe_perimeter = [p for p in perimeter if not self.is_fire(p)]
+            if safe_perimeter:
+                target = self.random.choice(safe_perimeter)
+        # Mover agente
         if target:
             self.grid.move_agent(agent, target)
         else:
@@ -711,11 +722,11 @@ class ExplorerModel(Model):
         x, y = pos
         for i, f in enumerate(self.fires):
             if f[0] == y and f[1] == x:
-                if f[2] == 2:  # Fuego activo se convierte en humo
+                if f[2] == 2:
                     f[2] = 1
                     if self.printable:
                         print(f"Fuego convertido a humo en {pos}")
-                else:  # Humo se elimina completamente
+                else:
                     self.fires.pop(i)
                     if self.printable:
                         print(f"Humo removido de {pos}")

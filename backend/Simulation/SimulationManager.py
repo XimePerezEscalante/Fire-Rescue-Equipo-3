@@ -1,5 +1,6 @@
-import multiprocessing
 import random
+import multiprocessing
+from tqdm import tqdm
 from Simulation.Simulation import Simulation
 
 def _worker_simulation(args):
@@ -8,15 +9,15 @@ def _worker_simulation(args):
     Se ejecuta en paralelo en diferentes núcleos de CPU para optimizar el rendimiento.
     
     Parámetros:
-        args (tuple): Tupla con (width, height, agents, pa, seed, strategy)
+        args (tuple): Tupla con (width, height, agents, pa, )
     
     Retorna:
         dict: Diccionario con métricas de la simulación y datos completos de reproducción
     """
-    width, height, agents, pa, seed, strategy = args
+    width, height, agents, pa, strategy = args
     
     # Ejecuta la simulación completa con los parámetros especificados
-    sim = Simulation(width, height, agents, pa, seed=seed, strategy=strategy)
+    sim = Simulation(width, height, agents, pa, strategy=strategy)
     sim.run()
     
     # Obtiene los datos completos de reproducción (todos los frames)
@@ -29,7 +30,6 @@ def _worker_simulation(args):
     total_movements = sum(agent.movement_count for agent in sim.model.agents_list)
 
     return {
-        "seed": seed,
         "score": final_score,
         "end_reason": sim.end_reason,
         "steps": sim.model.steps,
@@ -67,22 +67,25 @@ class SimulationManager:
         # Prepara los argumentos para cada simulación con semillas únicas
         tasks_args = []
         for i in range(iterations):
-            seed = random.randint(0, 1000000)
-            tasks_args.append((width, height, agents, pa, seed, strategy_name))
+            tasks_args.append((width, height, agents, pa, strategy_name))
         
         # Ejecuta simulaciones en paralelo usando todos los núcleos disponibles
         num_cores = multiprocessing.cpu_count()
         results = []
         
         if iterations > 0:
+            # Enviamos tareas en grupos para reducir overhead de llamadas
+            chunk_size = max(1, iterations // (num_cores * 4))
+
             with multiprocessing.Pool(processes=num_cores) as pool:
-                # Distribuye las tareas entre los workers y recopila resultados
-                raw_results = pool.map(_worker_simulation, tasks_args)
-                
-                # Asigna IDs únicos a cada resultado para identificación
-                for i, res in enumerate(raw_results):
-                    res["id"] = i
+                # Usamos chunksize para mejorar el paso de tareas
+                iterator = pool.imap_unordered(_worker_simulation, tasks_args, chunksize=chunk_size)
+                for res in tqdm(iterator, total=iterations, desc=f"🚀 Ejecutando ({strategy_name})", unit="sim"):
                     results.append(res)
+                
+                # Asignar IDs post-procesamiento
+                for i, res in enumerate(results):
+                    res["id"] = i
         
         # Calcula estadísticas agregadas de todos los resultados
         stats = {
