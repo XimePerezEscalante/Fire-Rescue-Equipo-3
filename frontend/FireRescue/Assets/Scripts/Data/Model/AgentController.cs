@@ -43,7 +43,110 @@ public class AgentController : MonoBehaviour
 
     public void InitializeMap(MapDataResponse mapResponse)
     {
+        string[,] wallsFromMap = new string[6,8];
+        int[,] doorsFromMap = new int[8,4];
+        int[,] entryPointsFromMap = new int[4,2];
+
         // Inicializar mapa
+        Debug.Log("Walls length: " + mapResponse.walls.Length);
+        string currentCell = "";
+
+        for (int row = 0;row < 6;row++)
+        {
+            string rowData = mapResponse.walls[row];  
+
+            for (int col = 0;col < 8;col++)
+            {
+                int startIndex = col * 4;     // posición donde inicia la celda
+                string cell = rowData.Substring(startIndex, 4);
+                wallsFromMap[row, col] = cell;
+
+                Debug.Log($"Cell[{row},{col}] = {cell}");
+                
+                // Si quieres cada uno de los 4 chars:
+                char up    = cell[0];
+                char right = cell[1];
+                char down  = cell[2];
+                char left  = cell[3];
+
+                Debug.Log($"U:{up} R:{right} D:{down} L:{left}");
+            }
+        }
+
+        int doorIndex = 0;
+
+        for (int i = 0; i < mapResponse.doors.Length; i++)
+        {
+            doorsFromMap[i, 0] = mapResponse.doors[i].p1[0]; // y1
+            doorsFromMap[i, 1] = mapResponse.doors[i].p1[1]; // x1
+            doorsFromMap[i, 2] = mapResponse.doors[i].p2[0]; // y2
+            doorsFromMap[i, 3] = mapResponse.doors[i].p2[1]; // x2
+        }
+
+        
+        Debug.Log("EntryPoints length: " + mapResponse.entryPoints.Length);
+        foreach (var ep in mapResponse.entryPoints)
+        {
+            //Debug.Log("values length: " + ep);
+        }
+        
+
+        for (int i = 0;i < 4;i++)
+        {
+            for (int j = 0;j < 2;j++)
+            {
+                entryPointsFromMap[i, j] = mapResponse.entryPoints[i].values[j];
+                Debug.Log("values length: " + mapResponse.entryPoints[i].values[j]);
+            }
+        }
+
+
+
+        /*for (int i = 0;i < mapResponse.doors.Length;i++)
+        {
+            Debug.Log(mapResponse.doors[i].status);
+        
+            doorsFromMap[i, 0] = mapResponse.doors[i].p1[0];
+            doorsFromMap[i, 1] = mapResponse.doors[i].p1[1];
+
+            doorsFromMap[i, 2] = mapResponse.doors[i].p2[0];
+            doorsFromMap[i, 3] = mapResponse.doors[i].p2[1];
+            
+        }*/
+
+
+        /*foreach (string row in mapResponse.walls)
+        {
+            Debug.Log("ROW: " + row);
+            foreach (char col in row)
+            {
+                Debug.Log("COL: " + col);
+            }
+        }
+
+        for (int i = 0;i < 6;i++)
+        {
+            for (int j = 0;j < 8;j++)
+            {
+                for (int k = 0;k < 4;k++)
+                {
+                    //currentCell += mapResponse.walls[i][j + k];
+                }
+                Debug.Log(wallsFromMap[i, j]);
+                wallsFromMap[i, j] = currentCell;
+                currentCell = "";
+            }
+        }
+        */
+        BM.Doors = doorsFromMap;
+        BM.Walls = wallsFromMap;
+        BM.AddEntryPointsToWallMatrix();
+        BM.AddDoorsToWallMatrix();
+        BM.PlaceWalls();
+        
+        
+        
+
         //Debug.Log("Walls length: " + mapResponse.walls.Count);
         //Debug.Log(mapResponse.walls[0].row[0]);
 
@@ -181,21 +284,34 @@ public class AgentController : MonoBehaviour
 
         // 1. Limpiar fuegos y pois anteriores
         foreach (var f in BM.activeFires) Destroy(f);
-        foreach (var p in BM.unknownPOIInstances) Destroy(p);
-        foreach (var p in activePois) Destroy(p);
+        //foreach (var p in BM.unknownPOIInstances) Destroy(p);
+        //foreach (var p in activePois) Destroy(p);
         BM.activeFires = new GameObject[30];
-        BM.unknownPOIInstances = new GameObject[3];
-        BM.knownPOIInstances = new GameObject[3];
+        //BM.unknownPOIInstances = new GameObject[3];
+        //BM.knownPOIInstances = new GameObject[3];
         activePois.Clear();
+        BM.DeleteNullObjects(0);
+        BM.DeleteNullObjects(1);
 
-        foreach (string wall in frame.walls)
+        for (int i = 0;i < 6;i++)
+        {
+            for (int j = 0;j < 8;j++)
+            {
+                for (int k = 0;k < 4;k++)
+                {
+                    
+                }
+            }
+        }
+
+        /*foreach (string wall in frame.walls)
         {
             foreach (char row in wall)
             {
                 Debug.Log(row);
             }
             //Debug.Log(wall.GetType());
-        }
+        }*/
 
         // 2. Instanciar Fuegos
         if (firePrefab != null && frame.fires != null)
@@ -217,22 +333,72 @@ public class AgentController : MonoBehaviour
         {
             //Debug.Log(revealedPOI);
 
-            foreach (var poi in frame.pois)
+            //Debug.Log(frame.pois.Length + " VS " + previousFrame.pois.Length);
+            int currentLength = frame.pois.Length;
+            int previousLength = previousFrame.pois.Length;
+
+            if (previousLength != currentLength) {
+                int cont = 0;
+                int indexPOIDestroyed = 0;
+
+                foreach (var poi in previousFrame.pois)
+                {
+                    if (poi.revealed == false && poi.type == "f")
+                    {
+                        indexPOIDestroyed = cont;
+                    }
+                    cont += 1;
+                    
+                }
+
+                for (int i = 0;i < currentLength;i++)
+                {
+                    if (i == indexPOIDestroyed)
+                    {
+                        BM.TurnPOIAround(frame.pois[i].y, frame.pois[i].x);
+                    }
+                    else
+                    {
+                        BM.MovePOI(frame.pois[i].y, frame.pois[i].x, true);
+                    }
+                
+                }
+            }
+            else
             {
+                for (int i = 0;i < frame.pois.Length;i++)
+                {
+                    if (frame.pois[i].revealed == true && previousFrame.pois[i].revealed == false)
+                    {
+                        BM.TurnPOIAround(frame.pois[i].y, frame.pois[i].x);
+                    }
+                    else if (previousFrame.pois[i].x != frame.pois[i].x || previousFrame.pois[i].y != frame.pois[i].y)
+                    {
+                        BM.MovePOI(frame.pois[i].y, frame.pois[i].x, true);
+                    }
                 
-                activePois.Add(BM.NewPOI(true, poi.revealed, poi.type, poi.y, poi.x));
-                
+                }
+            }
+
+            /*foreach (var poi in frame.pois)
+            {
+                //activePois.Add(BM.NewPOI(true, poi.revealed, poi.type, poi.y, poi.x));
+                if (poi.revealed)
+                BM.MovePOI(poi.y, poi.x, true);
                 //Debug.Log("COMPARING: " + poi.revealed);
                 // Solo instanciar si no ha sido salvada/recogida (depende de tu lógica en Python)
                 // Aquí asumo que si está en la lista 'pois' es que está en el mapa
                 //Vector3 pos = new Vector3(poi.x, 0.72f, poi.y);
                 //activePois.Add(Instantiate(victimPrefab, pos, Quaternion.identity));
-            }
+            }*/
         }
 
-        foreach (GameObject door in BM.doors)
+        for (int i = 0; i < frame.doors.Length;i++)
         {
-            
+            if (previousFrame.doors[i].status == "Closed" && frame.doors[i].status != "Closed")
+            {
+                BM.doors[i].GetComponent<Door>().OpenDoor();
+            }
         }
     }
 

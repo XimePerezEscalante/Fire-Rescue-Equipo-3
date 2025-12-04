@@ -52,9 +52,24 @@ public class KnownPOI : MonoBehaviour
         
     }
 
-    private void IsCarried()
+    public void Move(int r, int c, Vector3 newPosition)
     {
-        
+        // Actualizar ubicacion
+        row = r;
+        column = c;
+
+        // Tiempo para hacer el lerp
+        float timer = 0;
+        float timePerStep = 0.5f;
+        float t = timer / timePerStep;
+
+        // Mover POI con la funcion lerp
+        while(timer < timePerStep){
+            timer += Time.deltaTime;
+            t = timer / timePerStep;
+            // Cambiar ubicacion
+            transform.position = Vector3.Lerp(transform.position, newPosition, t);
+        }
     }
 
 }

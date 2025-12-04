@@ -17,7 +17,7 @@ public class WebClient : MonoBehaviour
     }
 
     // --- GET: Obtener Mapa ---
-    async IEnumerator GetMapData()
+    IEnumerator GetMapData()
     {
         string url = baseUrl + "/getMap";
         Debug.Log("Solicitando mapa a: " + url);
