@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.1] - UNRELEASED
+
+### Added
+
+### Changed
+
+- Agrupar el piso en Units (19/11/2025).
+  
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+
 ## [0.0.0] - 19/11/2025
 
 ### Added 
@@ -13,3 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Estructuración del proyecto (19/11/2025).
 - Importación de assets (19/11/2025).
 - Creación de prefabs (19/11/2022).
+- Agregar piso a escena del proyecto (19/11/2022).
+- Agregar changelog al proyecto (19/11/2022).
+- Agregar plantilla de Pull Request (19/11/2022).
