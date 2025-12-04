@@ -21,6 +21,7 @@ public class BoardManager : MonoBehaviour
     public GameObject[] doors;
     public List<GameObject> unknownPOIInstances;
     public List<GameObject> knownPOIInstances;
+    public List<GameObject> activeWalls;
     public static float XWall{get; private set;}
     public static float YWall{get; private set;}
     public static float ZWall{get; private set;}
@@ -319,51 +320,64 @@ public class BoardManager : MonoBehaviour
         if (type == 1)
         {
             // Crear instancia de pared
-            Instantiate(wallPrefab, spawnPosition, spawnRotation);
+            activeWalls.Add(Instantiate(wallPrefab, spawnPosition, spawnRotation));
         }
         else if (type == 2)
         {
             // Crear instancia de pared con marco para puerta
-            Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation);
+            activeWalls.Add(Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation));
 
-            // Obtener indice en el que se agregara la puerta
-            int currentIndex = 0;
-
-            foreach (GameObject door in doors)
+            /*// Checar si aún hay espacio para más puertas
+            bool isFull = true;
+            foreach (var d in doors)
             {
-                if (door != null)
+                if (d == null)   // hay espacio disponible
                 {
-                    currentIndex += 1;
+                    isFull = false;
+                    break;
                 }
             }
 
-            // Crear nombre de la puerta para ajustarse al JSON
-            string doorName = "p" + (currentIndex + 1);
+            if (isFull == false) {
+                // Obtener indice en el que se agregara la puerta
+                int currentIndex = 0;
 
-            if (YRotation == 0) {
-                // Modificar posicion en x de la puerta para que quede en medio de la pared
-                Vector3 doorSpawnPosition = new Vector3(XCoord + 1.3f, YCoord, ZCoord);
-                // Crear instancia de puerta
-                doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
-                // Asignar posicion 0 -> "frontal"
-                doors[currentIndex].GetComponent<Door>().position = 0;
-            }
-            else
-            {
-                Vector3 doorSpawnPosition = new Vector3(XCoord, YCoord, ZCoord - 1.3f);
-                // Crear instancia de puerta
-                doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
-                // Asignar posicion 1 -> "lateral"
-                doors[currentIndex].GetComponent<Door>().position = 1;
-            }
+                foreach (GameObject door in doors)
+                {
+                    if (door != null)
+                    {
+                        currentIndex += 1;
+                    }
+                }
 
-            doors[currentIndex].GetComponent<Door>().name = doorName;
+                // Crear nombre de la puerta para ajustarse al JSON
+                string doorName = "p" + (currentIndex + 1);
+
+                if (YRotation == 0) {
+                    // Modificar posicion en x de la puerta para que quede en medio de la pared
+                    Vector3 doorSpawnPosition = new Vector3(XCoord + 1.3f, YCoord, ZCoord);
+                    // Crear instancia de puerta
+                    doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
+                    // Asignar posicion 0 -> "frontal"
+                    doors[currentIndex].GetComponent<Door>().position = 0;
+                }
+                else
+                {
+                    Vector3 doorSpawnPosition = new Vector3(XCoord, YCoord, ZCoord - 1.3f);
+                    // Crear instancia de puerta
+                    doors[currentIndex] = Instantiate(doorPrefab, doorSpawnPosition, spawnRotation);
+                    // Asignar posicion 1 -> "lateral"
+                    doors[currentIndex].GetComponent<Door>().position = 1;
+                }
+
+                doors[currentIndex].GetComponent<Door>().name = doorName;
+            }*/
             
         }
         else if (type == 3)
         {
             // Crear instancia de pared con marco para puerta
-            Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation);
+            activeWalls.Add(Instantiate(wallDoorwayPrefab, spawnPosition, spawnRotation));
         }
     }
 
