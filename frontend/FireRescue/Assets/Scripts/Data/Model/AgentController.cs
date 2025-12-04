@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq; // Necesario para buscar agentes por ID en las listas
 using UnityEngine;
+using TMPro;
 
 public class AgentController : MonoBehaviour
 {
@@ -10,6 +11,10 @@ public class AgentController : MonoBehaviour
     public GameObject agentPrefab;
     public GameObject firePrefab; 
     public GameObject victimPrefab; 
+    public TMP_Text savedText;
+    public TMP_Text lostText;
+    public TMP_Text damageText;
+
 
     [Header("Settings")]
     public float timePerStep = 0.5f; // Tiempo entre frames
@@ -139,6 +144,7 @@ public class AgentController : MonoBehaviour
         }
         */
         BM.Doors = doorsFromMap;
+        BM.EntryPoints = entryPointsFromMap;
         BM.Walls = wallsFromMap;
         BM.AddEntryPointsToWallMatrix();
         BM.AddDoorsToWallMatrix();
@@ -284,25 +290,21 @@ public class AgentController : MonoBehaviour
 
         // 1. Limpiar fuegos y pois anteriores
         foreach (var f in BM.activeFires) Destroy(f);
-        //foreach (var p in BM.unknownPOIInstances) Destroy(p);
-        //foreach (var p in activePois) Destroy(p);
+        foreach (var p in BM.unknownPOIInstances) Destroy(p);
+        foreach (var p in BM.knownPOIInstances) Destroy(p);
+        foreach (var p in activePois) Destroy(p);
+        BM.Walls = null;
+
         BM.activeFires = new GameObject[30];
         //BM.unknownPOIInstances = new GameObject[3];
         //BM.knownPOIInstances = new GameObject[3];
+        BM.unknownPOIInstances.Clear();
+        BM.knownPOIInstances.Clear();
         activePois.Clear();
+
         BM.DeleteNullObjects(0);
         BM.DeleteNullObjects(1);
 
-        for (int i = 0;i < 6;i++)
-        {
-            for (int j = 0;j < 8;j++)
-            {
-                for (int k = 0;k < 4;k++)
-                {
-                    
-                }
-            }
-        }
 
         /*foreach (string wall in frame.walls)
         {
@@ -334,7 +336,7 @@ public class AgentController : MonoBehaviour
             //Debug.Log(revealedPOI);
 
             //Debug.Log(frame.pois.Length + " VS " + previousFrame.pois.Length);
-            int currentLength = frame.pois.Length;
+            /*int currentLength = frame.pois.Length;
             int previousLength = previousFrame.pois.Length;
 
             if (previousLength != currentLength) {
@@ -378,19 +380,18 @@ public class AgentController : MonoBehaviour
                     }
                 
                 }
-            }
+            }*/
 
-            /*foreach (var poi in frame.pois)
+            foreach (var poi in frame.pois)
             {
-                //activePois.Add(BM.NewPOI(true, poi.revealed, poi.type, poi.y, poi.x));
-                if (poi.revealed)
-                BM.MovePOI(poi.y, poi.x, true);
+                activePois.Add(BM.NewPOI(poi.revealed, poi.type, poi.y, poi.x));
+                //BM.MovePOI(poi.y, poi.x, true);
                 //Debug.Log("COMPARING: " + poi.revealed);
                 // Solo instanciar si no ha sido salvada/recogida (depende de tu lógica en Python)
                 // Aquí asumo que si está en la lista 'pois' es que está en el mapa
                 //Vector3 pos = new Vector3(poi.x, 0.72f, poi.y);
                 //activePois.Add(Instantiate(victimPrefab, pos, Quaternion.identity));
-            }*/
+            }
         }
 
         for (int i = 0; i < frame.doors.Length;i++)
@@ -400,6 +401,32 @@ public class AgentController : MonoBehaviour
                 BM.doors[i].GetComponent<Door>().OpenDoor();
             }
         }
+
+        string[,] wallsFromMap = new string[6,8];
+
+        for (int row = 0;row < 6;row++)
+        {
+            string rowData = frame.walls[row];  
+
+            for (int col = 0;col < 8;col++)
+            {
+                int startIndex = col * 4;     // posición donde inicia la celda
+                string cell = rowData.Substring(startIndex, 4);
+                wallsFromMap[row, col] = cell;
+
+                Debug.Log($"Cell[{row},{col}] = {cell}");
+                
+                // Si quieres cada uno de los 4 chars:
+                char up    = cell[0];
+                char right = cell[1];
+                char down  = cell[2];
+                char left  = cell[3];
+
+                Debug.Log($"U:{up} R:{right} D:{down} L:{left}");
+            }
+        }
+        BM.Walls = wallsFromMap;
+        BM.PlaceWalls();
     }
 
     void CleanUpScene()

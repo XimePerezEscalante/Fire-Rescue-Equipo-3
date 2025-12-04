@@ -100,13 +100,13 @@ public class BoardManager : MonoBehaviour
         {6, 7, 6, 8}
     };*/
 
-    private static int[,] EntryPoints = new int[4,2]
+    public int[,] EntryPoints; /* = new int[4,2]
     {
         {1, 6}, 
         {3, 1},
         {4, 8}, 
         {6, 3}
-    };
+    };*/
 
     private static int[,] Fire = new int[10,2]
     {
@@ -218,20 +218,18 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    public GameObject NewPOI(bool isMapInitialized, bool revealed, string type, int r, int c)
+    public GameObject NewPOI(bool revealed, string type, int r, int c)
     {
-        if (isMapInitialized)
+        if (revealed && type == "v")
         {
-            if (revealed && type == "v")
-            {
-                float XCoord = CorrectXCoordinates(c);
-                float ZCoord = CorrectZCoordinates(r);
-                return InstantiateKnownPOI(XCoord, ZCoord);
-            }
-            else
-            {
-                return InstantiateOneUnknownPOI(type, r, c);
-            }
+            float XCoord = CorrectXCoordinates(c);
+            float ZCoord = CorrectZCoordinates(r);
+            return InstantiateKnownPOI(XCoord, ZCoord);
+        }
+        else
+        {
+            return InstantiateOneUnknownPOI(type, r, c);
+        }
             
             /*if (revealed)
             {
@@ -239,12 +237,6 @@ public class BoardManager : MonoBehaviour
 
                 TurnPOIAround(r, c);
             }*/
-        }
-        else
-        {
-            InstantiateUnknownPOI();
-        }
-        return null;
     }
 
     private void InstantiateOneFire(int type, int r, int c)
@@ -446,7 +438,7 @@ public class BoardManager : MonoBehaviour
         // Crear instancia del objeto
         Vector3 spawnPosition = new Vector3(XCoord, 0.5f, ZCoord);
         Quaternion spawnRotation = Quaternion.identity;
-        GameObject newPOI = Instantiate(knownPOIPrefabs[indexPOI], spawnPosition, spawnRotation);
+        GameObject newPOI = Instantiate(knownPOIPrefabs[0], spawnPosition, spawnRotation);
         // Agregar objeto al arreglo knownPOI
         knownPOIInstances.Add(newPOI);
         return newPOI;
