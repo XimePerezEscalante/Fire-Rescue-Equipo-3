@@ -32,8 +32,6 @@ public class Agent : MonoBehaviour
 
         // Tiempo para hacer el lerp
         float timer = 0;
-        float timeElapsed = 0;
-        float timeToMove = 3;
         float timePerStep = 0.5f;
         float t = timer / timePerStep;
 
@@ -43,16 +41,6 @@ public class Agent : MonoBehaviour
             t = timer / timePerStep;
             // Cambiar ubicacion
             transform.position = Vector3.Lerp(transform.position, newPosition, t);
-            // Cambiar rotacion
-            /*if (newRotation != Vector3.zero)
-            {
-                    transform.rotation = Quaternion.Slerp(
-                        transform.rotation, 
-                        Quaternion.LookRotation(newRotation), 
-                        t * 5 // Velocidad de giro
-                    );
-            }*/
-            timeElapsed += Time.deltaTime;
         }
     }
 

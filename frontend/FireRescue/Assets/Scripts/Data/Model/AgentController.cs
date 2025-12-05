@@ -66,8 +66,6 @@ public class AgentController : MonoBehaviour
                 int startIndex = col * 4;     // posición donde inicia la celda
                 string cell = rowData.Substring(startIndex, 4);
                 wallsFromMap[row, col] = cell;
-
-                Debug.Log($"Cell[{row},{col}] = {cell}");
                 
                 // Si quieres cada uno de los 4 chars:
                 char up    = cell[0];
@@ -75,7 +73,6 @@ public class AgentController : MonoBehaviour
                 char down  = cell[2];
                 char left  = cell[3];
 
-                Debug.Log($"U:{up} R:{right} D:{down} L:{left}");
             }
         }
 
@@ -100,10 +97,7 @@ public class AgentController : MonoBehaviour
         string[,] wallsFromMap = new string[6,8];
         int[,] doorsFromMap = new int[8,4];
         int[,] entryPointsFromMap = new int[4,2];
-
-        // Inicializar mapa
-        Debug.Log("Walls length: " + mapResponse.walls.Length);
-        string currentCell = "";
+        int[,] poisFromMap = new int[3,3];
 
         for (int row = 0;row < 6;row++)
         {
@@ -115,21 +109,28 @@ public class AgentController : MonoBehaviour
                 string cell = rowData.Substring(startIndex, 4);
                 wallsFromMap[row, col] = cell;
 
-                Debug.Log($"Cell[{row},{col}] = {cell}");
                 
-                // Si quieres cada uno de los 4 chars:
+                // Cada uno de los 4 chars
                 char up    = cell[0];
                 char right = cell[1];
                 char down  = cell[2];
                 char left  = cell[3];
-
-                Debug.Log($"U:{up} R:{right} D:{down} L:{left}");
             }
         }
 
-        int doorIndex = 0;
+        Debug.Log("POIS LENGTH: " + mapResponse.pois.Length);
 
-        for (int i = 0; i < mapResponse.doors.Length; i++)
+        for (int i = 0;i < mapResponse.pois.Length;i++)
+        {
+            // Fila
+            poisFromMap[i,0] = mapResponse.pois[i].y;
+            // Columna
+            poisFromMap[i,1] = mapResponse.pois[i].x;
+            // Falsa alarma
+            poisFromMap[i,2] = mapResponse.pois[i].type;
+        }
+
+        for (int i = 0;i < mapResponse.doors.Length; i++)
         {
             doorsFromMap[i, 0] = mapResponse.doors[i].p1[0]; // y1
             doorsFromMap[i, 1] = mapResponse.doors[i].p1[1]; // x1
@@ -137,99 +138,23 @@ public class AgentController : MonoBehaviour
             doorsFromMap[i, 3] = mapResponse.doors[i].p2[1]; // x2
         }
 
-        
-        Debug.Log("EntryPoints length: " + mapResponse.entryPoints.Length);
-        foreach (var ep in mapResponse.entryPoints)
-        {
-            //Debug.Log("values length: " + ep);
-        }
-        
 
         for (int i = 0;i < 4;i++)
         {
             for (int j = 0;j < 2;j++)
             {
                 entryPointsFromMap[i, j] = mapResponse.entryPoints[i].values[j];
-                Debug.Log("values length: " + mapResponse.entryPoints[i].values[j]);
             }
         }
 
-
-
-        /*for (int i = 0;i < mapResponse.doors.Length;i++)
-        {
-            Debug.Log(mapResponse.doors[i].status);
-        
-            doorsFromMap[i, 0] = mapResponse.doors[i].p1[0];
-            doorsFromMap[i, 1] = mapResponse.doors[i].p1[1];
-
-            doorsFromMap[i, 2] = mapResponse.doors[i].p2[0];
-            doorsFromMap[i, 3] = mapResponse.doors[i].p2[1];
-            
-        }*/
-
-
-        /*foreach (string row in mapResponse.walls)
-        {
-            Debug.Log("ROW: " + row);
-            foreach (char col in row)
-            {
-                Debug.Log("COL: " + col);
-            }
-        }
-
-        for (int i = 0;i < 6;i++)
-        {
-            for (int j = 0;j < 8;j++)
-            {
-                for (int k = 0;k < 4;k++)
-                {
-                    //currentCell += mapResponse.walls[i][j + k];
-                }
-                Debug.Log(wallsFromMap[i, j]);
-                wallsFromMap[i, j] = currentCell;
-                currentCell = "";
-            }
-        }
-        */
-
+        BM.POI = poisFromMap;
         BM.Doors = doorsFromMap;
         BM.EntryPoints = entryPointsFromMap;
         BM.Walls = wallsFromMap;
         BM.AddEntryPointsToWallMatrix();
         BM.AddDoorsToWallMatrix();
         BM.PlaceWalls();
-        
-        
-        
-
-        //Debug.Log("Walls length: " + mapResponse.walls.Count);
-        //Debug.Log(mapResponse.walls[0].row[0]);
-
-        /*
-        for (int i = 5;i >= 0;i--)
-        {
-            for (int j = 7;j >= 0;j--)
-            {
-                Debug.Log(mapResponse.walls[i, j]);
-            }
-        }*/
-        //Debug.Log("EntryPoints length: " + mapResponse.entryPoints.Count);
-
-        /*for (int i = 0;i < mapResponse.fires.Length;i++)
-        {
-            for (int j = 0; j < 2;j++)
-            {
-                Debug.Log(mapResponse.fires[i,j]);
-            }
-            
-        }*/
-
-
-
-        Debug.Log("Doors length: " + mapResponse.doors.Length);
-
-        Debug.Log("Fires length: " + mapResponse.fires.Length);
+        BM.InstantiateUnknownPOI();
     }
 
     // Crea los GameObjects iniciales
@@ -238,8 +163,6 @@ public class AgentController : MonoBehaviour
 
         foreach (var data in agentsData)
         {
-            //Vector3 pos = new Vector3(data.x, 0, data.y);
-            //GameObject newAgent = Instantiate(agentPrefab, pos, Quaternion.identity);
             // Llamar a la funcion de Move Agent BoardManager.MoveAgent(data.id, data.x, data.y)
             BM.MoveAgent(data.id, data.x, data.y, new Vector3(0,0,0));
             // Asignar nombre y guardar en diccionario
@@ -314,20 +237,9 @@ public class AgentController : MonoBehaviour
                     Vector3 start = startPositions[id];
                     Vector3 end = targetPositions[id];
 
-                    // Interpolación lineal
-                    //agentObj.transform.position = Vector3.Lerp(start, end, t);
-
                     // Rotación suave hacia el destino
                     Vector3 dir = end - start;
                     BM.MoveAgent(id, newX[id], newY[id], dir);
-                    /*if (dir != Vector3.zero)
-                    {
-                        agentObj.transform.rotation = Quaternion.Slerp(
-                            agentObj.transform.rotation, 
-                            Quaternion.LookRotation(dir), 
-                            t * 5 // Velocidad de giro
-                        );
-                    }*/
                 }
             }
             yield return null; // Esperar al siguiente frame de Unity
@@ -347,16 +259,12 @@ public class AgentController : MonoBehaviour
                 int startIndex = col * 4;     // posición donde inicia la celda
                 string cell = rowData.Substring(startIndex, 4);
                 wallsFromMap[row, col] = cell;
-
-                Debug.Log($"Cell[{row},{col}] = {cell}");
                 
-                // Si quieres cada uno de los 4 chars:
+                // Cada uno de los 4 chars
                 char up    = cell[0];
                 char right = cell[1];
                 char down  = cell[2];
                 char left  = cell[3];
-
-                Debug.Log($"U:{up} R:{right} D:{down} L:{left}");
             }
         }
         BM.Walls = wallsFromMap;
@@ -432,7 +340,6 @@ public class AgentController : MonoBehaviour
         
             int currentI;
             int currentJ;
-            string currentValue;
             float YRotation = 0;
             float XCoord = 0;
             float YCoord = 0.5f;
@@ -452,7 +359,6 @@ public class AgentController : MonoBehaviour
                         XCoord = CorrectXCoordinates(currentJ);
                         ZCoord = CorrectZCoordinates(currentI - 1);
                         YRotation = 90;
-                        //currentValue[1] = '2';
                     }
                     // Hacia la celda de la izquierda
                     else if (doorsFromMap[i,3] > currentJ)
@@ -460,7 +366,6 @@ public class AgentController : MonoBehaviour
                         XCoord = CorrectXCoordinates(currentJ - 2);
                         ZCoord = CorrectZCoordinates(currentI - 1);
                         YRotation = 90;
-                        //currentValue[1] = '2'; currentI - 1, currentJ - 2
                     }
                 }
                 // La puerta conduce a la fila de arriba
@@ -469,18 +374,15 @@ public class AgentController : MonoBehaviour
                     XCoord = CorrectXCoordinates(currentJ - 1);
                     ZCoord = CorrectZCoordinates(currentI - 1);
                     
-                    //currentValue[0] = '2';
-                    
                 }
                 // La puerta conduce a la fila de abajo
                 else if (doorsFromMap[i,2] > currentI)
                 {
                     XCoord = CorrectXCoordinates(currentJ - 1);
                     ZCoord = CorrectZCoordinates(currentI);
-                    //currentValue[0] = '2';
-                    //Debug.Log("CURRENT VALUE " + currentValue + "CURRENT I = " + currentI);
                     
                 }
+
             GameObject newDoor = InstantiateDoor(XCoord, YCoord, ZCoord, YRotation);
             activeDoors.Add(newDoor);
         }
@@ -504,8 +406,6 @@ public class AgentController : MonoBehaviour
         BM.Walls = null;
         BM.doors = new GameObject[8];
         BM.activeFires = new GameObject[30];
-        //BM.unknownPOIInstances = new GameObject[3];
-        //BM.knownPOIInstances = new GameObject[3];
         BM.unknownPOIInstances.Clear();
         BM.knownPOIInstances.Clear();
         BM.activeWalls.Clear();
@@ -514,18 +414,6 @@ public class AgentController : MonoBehaviour
         BM.DeleteNullObjects(0);
         BM.DeleteNullObjects(1);
         SetMatrices(frame);
-        //InstantiateDoorsFromFrame(frame);
-        //UpdateWalls(frame);
-
-
-        /*foreach (string wall in frame.walls)
-        {
-            foreach (char row in wall)
-            {
-                Debug.Log(row);
-            }
-            //Debug.Log(wall.GetType());
-        }*/
 
         // 2. Instanciar Fuegos
         if (firePrefab != null && frame.fires != null)
@@ -545,64 +433,10 @@ public class AgentController : MonoBehaviour
         // 3. Instanciar POIs (Víctimas)
         if (victimPrefab != null && frame.pois != null)
         {
-            //Debug.Log(revealedPOI);
-
-            //Debug.Log(frame.pois.Length + " VS " + previousFrame.pois.Length);
-            /*int currentLength = frame.pois.Length;
-            int previousLength = previousFrame.pois.Length;
-
-            if (previousLength != currentLength) {
-                int cont = 0;
-                int indexPOIDestroyed = 0;
-
-                foreach (var poi in previousFrame.pois)
-                {
-                    if (poi.revealed == false && poi.type == "f")
-                    {
-                        indexPOIDestroyed = cont;
-                    }
-                    cont += 1;
-                    
-                }
-
-                for (int i = 0;i < currentLength;i++)
-                {
-                    if (i == indexPOIDestroyed)
-                    {
-                        BM.TurnPOIAround(frame.pois[i].y, frame.pois[i].x);
-                    }
-                    else
-                    {
-                        BM.MovePOI(frame.pois[i].y, frame.pois[i].x, true);
-                    }
-                
-                }
-            }
-            else
-            {
-                for (int i = 0;i < frame.pois.Length;i++)
-                {
-                    if (frame.pois[i].revealed == true && previousFrame.pois[i].revealed == false)
-                    {
-                        BM.TurnPOIAround(frame.pois[i].y, frame.pois[i].x);
-                    }
-                    else if (previousFrame.pois[i].x != frame.pois[i].x || previousFrame.pois[i].y != frame.pois[i].y)
-                    {
-                        BM.MovePOI(frame.pois[i].y, frame.pois[i].x, true);
-                    }
-                
-                }
-            }*/
 
             foreach (var poi in frame.pois)
             {
                 activePois.Add(BM.NewPOI(poi.revealed, poi.type, poi.y, poi.x));
-                //BM.MovePOI(poi.y, poi.x, true);
-                //Debug.Log("COMPARING: " + poi.revealed);
-                // Solo instanciar si no ha sido salvada/recogida (depende de tu lógica en Python)
-                // Aquí asumo que si está en la lista 'pois' es que está en el mapa
-                //Vector3 pos = new Vector3(poi.x, 0.72f, poi.y);
-                //activePois.Add(Instantiate(victimPrefab, pos, Quaternion.identity));
             }
         }
 
@@ -614,10 +448,6 @@ public class AgentController : MonoBehaviour
                 {
                     BM.doors[i].GetComponent<Door>().OpenDoor();
                 }
-                /*if (previousFrame.doors[i].status == "Closed" && frame.doors[i].status != "Closed")
-                {
-                    BM.doors[i].GetComponent<Door>().OpenDoor();
-                }*/
             }
         }
 

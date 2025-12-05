@@ -4,7 +4,7 @@ public class Door : MonoBehaviour
 {
     public GameObject doorPrefab;
     private Animator animator;
-    public string name;
+    public string doorName;
     public bool isOpen;
     // Cambiar a privado
     public int position;
@@ -13,14 +13,7 @@ public class Door : MonoBehaviour
     void Start()
     {
         isOpen = false;
-        Debug.Log("Start called on " + name);
 
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     public void SetPosition(int p)
@@ -30,7 +23,6 @@ public class Door : MonoBehaviour
 
     public void OpenDoor()
     {
-        Debug.Log("Opening door " + name);
 
         // Obtener componente Animator
         animator = GetComponent<Animator>();
@@ -50,14 +42,7 @@ public class Door : MonoBehaviour
             animator.SetTrigger("Stop");
             transform.rotation = Quaternion.Euler(0, 180, 0);
         }
-        //animator.SetTrigger("Stop");
 
         isOpen = true;
-    }
-
-    public void DestroyDoor()
-    {
-        // Play sound
-        // Destroy object
     }
 }

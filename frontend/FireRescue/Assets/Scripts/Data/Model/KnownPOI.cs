@@ -16,21 +16,6 @@ public class KnownPOI : MonoBehaviour
         audioSystem = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioSystem>();
     }
 
-    //private static Random random = new Random();
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        // Escoger numero random para el indice de KnownPOIs
-        //int randomNumberInRange = random.Next(9);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     public void SetIsAlive(bool alive)
     {
         isAlive = alive;

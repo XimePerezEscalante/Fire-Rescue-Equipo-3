@@ -25,89 +25,9 @@ public class BoardManager : MonoBehaviour
     public static float XWall{get; private set;}
     public static float YWall{get; private set;}
     public static float ZWall{get; private set;}
-    public string[,] Walls;//[,] Walls = new string[6,8];
-    /*{
-        {
-            "1100",
-            "1000",
-            "1001",
-            "1100",
-            "1001",
-            "1100",
-            "1000",
-            "1001"
-        },
-        {
-            "0100",
-            "0000",
-            "0011",
-            "0110",
-            "0011",
-            "0110",
-            "0010",
-            "0011"
-        },
-        {
-            "0100",
-            "0001",
-            "1100",
-            "1000",
-            "1000",
-            "1001",
-            "1100",
-            "1001"
-        },
-        {
-            "0110",
-            "0011",
-            "0110",
-            "0010",
-            "0010",
-            "0011",
-            "0110",
-            "0011"
-        },
-        {
-            "1100",
-            "1000",
-            "1000",
-            "1000",
-            "1001",
-            "1100",
-            "1001",
-            "1101"
-        },
-        {
-            "0110",
-            "0010",
-            "0010",
-            "0010",
-            "0011",
-            "0110",
-            "0011",
-            "0111"
-        }
-    };*/
-    
-    public int[,] Doors;/* = new int[8,4]
-    {
-        {1, 3, 1, 4},
-        {2, 5, 2, 6},
-        {2, 8, 3, 8},
-        {3, 2, 3, 3},
-        {4, 4, 5, 4},
-        {4, 6, 4, 7},
-        {6, 5, 6, 6},
-        {6, 7, 6, 8}
-    };*/
-
-    public int[,] EntryPoints; /* = new int[4,2]
-    {
-        {1, 6}, 
-        {3, 1},
-        {4, 8}, 
-        {6, 3}
-    };*/
+    public string[,] Walls;
+    public int[,] Doors;
+    public int[,] EntryPoints;
 
     private static int[,] Fire = new int[10,2]
     {
@@ -123,12 +43,7 @@ public class BoardManager : MonoBehaviour
         {6, 6}
     };
 
-    private static int[,] POI = new int[3,3]
-    {
-        {2, 4, 1},
-        {5, 1, 0},
-        {5, 8, 1}
-    };
+    public int[,] POI;
 
     private void Awake()
     {
@@ -141,51 +56,28 @@ public class BoardManager : MonoBehaviour
         XWall = 0;
         YWall = 0.5f;
         ZWall = 0;
-        //AddEntryPointsToWallMatrix();
-        //AddDoorsToWallMatrix();
-        //PlaceWalls();
-        /*InstantiateFire();
-        OpenDoor("p3");
-        OpenDoor("p4");
-        OpenDoor("p5");
-        */
-        InstantiateUnknownPOI();
-        //TurnPOIAround(2, 4);
-        //MoveAgent(1, 6, 1);
-        // Explosion(1, 1);
-        //UpdateValues("1100", 1, '2');
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-    
     }
 
     private int CheckUp(string cell)
     {
-        //Debug.Log(cell[0]);
         int intValue = cell[0] - '0';
         return intValue;
     }
 
     private int CheckLeft(string cell)
     {
-        //Debug.Log(cell[1]);
         int intValue = cell[1] - '0';
         return intValue;
     }
 
     private int CheckDown(string cell)
     {
-        //Debug.Log(cell[2]);
         int intValue = cell[2] - '0';
         return intValue;
     }
 
     private int CheckRight(string cell)
     {
-        //Debug.Log(cell[3]);
         int intValue = cell[3] - '0';
         return intValue;
     }
@@ -231,13 +123,6 @@ public class BoardManager : MonoBehaviour
         {
             return InstantiateOneUnknownPOI(type, r, c);
         }
-            
-            /*if (revealed)
-            {
-                Debug.Log("POI REVEALED\n ROW: " + r + " COL: " + c);
-
-                TurnPOIAround(r, c);
-            }*/
     }
 
     private void InstantiateOneFire(int type, int r, int c)
@@ -370,7 +255,7 @@ public class BoardManager : MonoBehaviour
                     doors[currentIndex].GetComponent<Door>().position = 1;
                 }
 
-                doors[currentIndex].GetComponent<Door>().name = doorName;
+                doors[currentIndex].GetComponent<Door>().doorName = doorName;
             }
             
         }
@@ -399,7 +284,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private void InstantiateUnknownPOI()
+    public void InstantiateUnknownPOI()
     {
         float XCoord = 0f;
         float ZCoord = 0f;
@@ -464,8 +349,6 @@ public class BoardManager : MonoBehaviour
         float ZCoord = CorrectZCoordinates(r);
         // Crear vector de posicion de objeto
         Vector3 newPosition = new Vector3(XCoord, 3.29f, ZCoord);
-        // Crear vector de rotacion de objeto
-        // Quaternion spawnRotation = Quaternion.identity;
         // Mover agente
         agents[agentIndex].GetComponent<Agent>().Move(r, c, newPosition, rotation);
 
@@ -513,9 +396,6 @@ public class BoardManager : MonoBehaviour
         int cont = 0;
         
         foreach (GameObject onePOI in allPOIS) {
-            Debug.Log("POI " + cont);
-            Debug.Log("Inside Turn POI - ROW: " + onePOI.GetComponent<UnknownPOI>().row);
-            Debug.Log("Inside Turn POI - COL:" + onePOI.GetComponent<UnknownPOI>().column);
             // Se encontro el POI
             if (onePOI.GetComponent<UnknownPOI>().row == r && onePOI.GetComponent<UnknownPOI>().column == c){
                 // Checar si es falsa alarma
@@ -541,7 +421,7 @@ public class BoardManager : MonoBehaviour
     {
         foreach (GameObject door in doors)
         {
-            if (door.GetComponent<Door>().name == doorName)
+            if (door.GetComponent<Door>().doorName == doorName)
             {
                 door.GetComponent<Door>().OpenDoor();
             }
@@ -573,7 +453,6 @@ public class BoardManager : MonoBehaviour
             }
         });
 
-        //Debug.Log(result);
         return result;
     }
 
@@ -598,7 +477,6 @@ public class BoardManager : MonoBehaviour
             {
                 row += Doors[i, j] + " ";
             }
-            Debug.Log("Door " + i + ": " + row);
         }
 
         int currentI;
@@ -623,14 +501,12 @@ public class BoardManager : MonoBehaviour
                 if (Doors[i,3] > currentJ)
                 {
                     currentValue = Walls[currentI - 1, currentJ];
-                    //currentValue[1] = '2';
                     Walls[currentI - 1, currentJ] = UpdateValues(currentValue, 1, '2');;
                 }
                 // Hacia la celda de la izquierda
                 else if (Doors[i,3] > currentJ)
                 {
                     currentValue = Walls[currentI - 1, currentJ - 2];
-                    //currentValue[1] = '2';
                     Walls[currentI - 1, currentJ - 2] = UpdateValues(currentValue, 1, '2');;
                 }
             }
@@ -638,15 +514,12 @@ public class BoardManager : MonoBehaviour
             else if (Doors[i,2] < currentI)
             {
                 currentValue = Walls[currentI - 1, currentJ - 1];
-                //currentValue[0] = '2';
                 Walls[currentI - 1, currentJ - 1] = UpdateValues(currentValue, 0, '2');;
             }
             // La puerta conduce a la fila de abajo
             else if (Doors[i,2] > currentI)
             {
                 currentValue = Walls[currentI, currentJ - 1];
-                //currentValue[0] = '2';
-                //Debug.Log("CURRENT VALUE " + currentValue + "CURRENT I = " + currentI);
                 Walls[currentI, currentJ - 1] = UpdateValues(currentValue, 0, '2');;
             }
             
@@ -702,7 +575,6 @@ public class BoardManager : MonoBehaviour
                 {
                     if (j == 0)
                     {
-                        //Debug.Log(Walls[i,j,0]);
                         // Checar pared de arriba
                         // Hay pared
                         if (CheckUp(Walls[i,j]) == 1)
@@ -793,7 +665,6 @@ public class BoardManager : MonoBehaviour
                     }
                     else
                     {
-                        //Debug.Log(Walls[i,j,0]);
                         // Checar pared de arriba
                         // Hay pared
                         if (CheckUp(Walls[i,j]) == 1)
@@ -927,7 +798,6 @@ public class BoardManager : MonoBehaviour
                         // Hay pared
                         if (CheckUp(Walls[i,j]) == 1)
                         {
-                            //Debug.Log("i: " + i);
                             InstantiateWall(1, 0, 0.5f, 6.4f * (6 - i) - 3, 0);
                         }
                         // Hay puerta
@@ -978,7 +848,6 @@ public class BoardManager : MonoBehaviour
                         // Hay pared
                         if (CheckRight(Walls[i,j]) == 1)
                         {
-                            //Debug.Log("RIGHT WALL i: " + i + " Z: " + 6.4f * (6 - i - 1));
                             InstantiateWall(1, 47.71f, 0.5f, 6.4f * (6 - i - 1), 90f);
                         }
                         // Hay punto de entrada

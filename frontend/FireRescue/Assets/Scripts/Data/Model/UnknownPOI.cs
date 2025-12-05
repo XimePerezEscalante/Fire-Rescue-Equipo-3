@@ -15,17 +15,6 @@ public class UnknownPOI : MonoBehaviour
     {
         audioSystem = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioSystem>();
     }
-    
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
     public void SetFalseAlarm(bool isFake)
     {
